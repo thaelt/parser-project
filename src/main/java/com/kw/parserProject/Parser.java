@@ -15,14 +15,17 @@ public class Parser {
 
     List<Token> tokens = new LinkedList<>();
 
-    List<Statement> parse(String programCode) throws IOException {
+    List<Statement> parse(String programCode) {
         // read input into list of tokens
         InputStream inputStream = new ByteArrayInputStream(programCode.getBytes());
 
-        Reader reader = new InputStreamReader(inputStream, Charset.defaultCharset());
-        BufferedReader buffer = new BufferedReader(reader);
-
-        List<String> lines = buffer.readAllLines();
+        List<String> lines;
+        try (Reader reader = new InputStreamReader(inputStream, Charset.defaultCharset());
+             BufferedReader buffer = new BufferedReader(reader)) {
+            lines = buffer.readAllLines();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         lines.forEach(line -> {
             char[] charArray = line.toCharArray();
             int startingPos = 0;
@@ -271,7 +274,7 @@ public class Parser {
         return -1;
     }
 
-    static void main() throws IOException {
+    static void main() {
         String programCode = """
                 a = 1
                 b = a
