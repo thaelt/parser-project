@@ -7,6 +7,7 @@ import com.kw.parserProject.utility.ReadResults;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Parser {
@@ -14,7 +15,7 @@ public class Parser {
     private static final List<Character> RECOGNIZED_OPERATORS = List.of('+', '-', '*', '/', '<', '>');
     private static final List<String> RECOGNIZED_KEYWORDS = List.of("while", "else", "end", "if");
 
-    List<Statement> parse(String programCode) {
+    public List<Statement> parse(String programCode) {
         List<Token> tokens = extractTokens(programCode);
         ReadResults<Integer, List<Statement>> program = readStatementList(new LinkedList<>(tokens), 0);
 
@@ -45,66 +46,50 @@ public class Parser {
         return new ReadResults<>(previousSuccessIndex, statements);
     }
 
-
     private ReadResults<Integer, Statement> readConditionStatement(List<Token> tokens, int startIndex) {
-        // variable = expression
-        // if expression statementList end
-        // if expression statementList else statementList end
-        // while expression statementList end
-
         Token token = tryReadingToken(tokens, startIndex);
         if (token instanceof KeywordToken) {
             if ("if".equals(token.data)) {
                 ReadResults<Integer, Expression> tryReadingIfCondition = readExpressionWithBrackets(tokens, startIndex + 1);
-                if (tryReadingIfCondition.nextIndex() == -1) {
-                    throw new IllegalStateException("Bad IF statement");
-                }
+                assertTokenIsPresent(tryReadingIfCondition, "Expecting condition in 'if' statement, did not encounter one");
+
                 ReadResults<Integer, List<Statement>> readStatementListIfClauseResults = readStatementList(tokens, tryReadingIfCondition.nextIndex());
-                int endStatementIndex = readStatementListIfClauseResults.nextIndex();
-                // expect a keyword
-                if (endStatementIndex == -1) {
-                    throw new IllegalStateException("Couldn't read statements");
-                }
-                Token secondToken = tokens.get(endStatementIndex);
-                if (!(secondToken instanceof KeywordToken)) {
-                    throw new IllegalStateException("Bad IF statement");
-                }
+                assertTokenIsPresent(readStatementListIfClauseResults, "Expecting statements in 'if' section, did not encounter one");
+
+                int potentialEndKeywordIndex = readStatementListIfClauseResults.nextIndex();
+                Token secondToken = tokens.get(potentialEndKeywordIndex);
+                assertTokenIsOfType(secondToken, KeywordToken.class);
+
+                List<Statement> ifClauseStatements = readStatementListIfClauseResults.value();
+                List<Statement> elseIfClauseStatements = List.of();
 
                 if ("else".equals(secondToken.data)) {
-                    ReadResults<Integer, List<Statement>> readStatementListResults = readStatementList(tokens, endStatementIndex + 1);
-                    int elseIfStatementIndex = readStatementListResults.nextIndex();
-                    if (elseIfStatementIndex == -1) {
-                        throw new IllegalStateException("BAD ELSEIF");
-                    }
-                    Token endKeyword = tokens.get(elseIfStatementIndex);
-                    if (!("end".equals(endKeyword.data))) {
-                        throw new IllegalStateException("No end keyword after if-else");
-                    }
-                    Statement statement = new IfStatement(tryReadingIfCondition.value(), readStatementListIfClauseResults.value(), readStatementListResults.value(), tokens.subList(startIndex, elseIfStatementIndex + 1).toString());
-                    return new ReadResults<>(elseIfStatementIndex + 1, statement);
-                } else if (("end".equals(secondToken.data))) {
-                    Statement ifStatement = new IfStatement(tryReadingIfCondition.value(), readStatementListIfClauseResults.value(), List.of(), tokens.subList(startIndex, endStatementIndex + 1).toString());
-                    return new ReadResults<>(endStatementIndex + 1, ifStatement);
-                }
-            } else if ("while".equals(token.data)) {
-                ReadResults<Integer, Expression> i = readExpressionWithBrackets(tokens, startIndex + 1);
-                if (i.nextIndex() == -1) {
-                    throw new IllegalStateException("Bad while statement");
-                }
-                //statementList
+                    ReadResults<Integer, List<Statement>> elseSectionReadResults = readStatementList(tokens, potentialEndKeywordIndex + 1);
+                    assertTokenIsPresent(elseSectionReadResults, "Expecting statements in 'else' section, did not encounter one");
 
-                ReadResults<Integer, List<Statement>> readStatementListResults = readStatementList(tokens, i.nextIndex());
-                int elseIfStatementIndex = readStatementListResults.nextIndex();
-                if (elseIfStatementIndex == -1) {
-                    throw new IllegalStateException("BAD ELSEIF");
+                    elseIfClauseStatements = elseSectionReadResults.value();
+                    potentialEndKeywordIndex = elseSectionReadResults.nextIndex();
                 }
+                Token endKeyword = tokens.get(potentialEndKeywordIndex);
+                assertTokenIsOfType(endKeyword, KeywordToken.class);
+                assertTokenHasData(endKeyword, "end");
+
+                Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements, tokens.subList(startIndex, potentialEndKeywordIndex + 1).toString());
+                return new ReadResults<>(potentialEndKeywordIndex + 1, statement);
+            } else if ("while".equals(token.data)) {
+                ReadResults<Integer, Expression> whileExpressionReadResults = readExpressionWithBrackets(tokens, startIndex + 1);
+                assertTokenIsPresent(whileExpressionReadResults, "Expecting expression after 'while' keyword, did not encounter one");
+
+                //statementList
+                ReadResults<Integer, List<Statement>> readStatementListResults = readStatementList(tokens, whileExpressionReadResults.nextIndex());
+                assertTokenIsPresent(readStatementListResults, "Expecting statements in 'while' loop, did not encounter one");
+
+                int elseIfStatementIndex = readStatementListResults.nextIndex();
                 // end keyword
                 Token endKeyword = tokens.get(elseIfStatementIndex);
-                if (!("end".equals(endKeyword.data))) {
-                    throw new IllegalStateException("No end keyword after while");
-                }
+                assertTokenHasData(endKeyword, "end");
 
-                Statement whileStatement = new WhileStatement(i.value(), readStatementListResults.value(), tokens.subList(startIndex, elseIfStatementIndex + 1).toString());
+                Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), tokens.subList(startIndex, elseIfStatementIndex + 1).toString());
                 return new ReadResults<>(elseIfStatementIndex + 1, whileStatement);
             }
         } else if (token instanceof VariableToken) {
@@ -116,46 +101,32 @@ public class Parser {
     }
 
     private ReadResults<Integer, Statement> readAssignmentStatement(List<Token> tokens, int startIndex) {
-        // variable = expression
-        // if expression statementList end
-        // if expression statementList else statementList end
-        // while expression statementList end
-
         Token token = tokens.get(startIndex);
         if (token instanceof VariableToken) {
             Token assignmentToken = tokens.get(startIndex + 1);
-            if (!(assignmentToken instanceof AssignmentToken)) {
-                throw new IllegalStateException("Expecting = sign");
-            }
+            assertTokenIsOfType(assignmentToken, AssignmentToken.class);
 
-            ReadResults<Integer, Expression> cursor = readExpressionWithBrackets(tokens, startIndex + 2);
-            if (cursor.nextIndex() == -1) {
-                throw new IllegalStateException("Couldn't read the expression to assign");
-            }
+            ReadResults<Integer, Expression> assignmentReadResults = readExpressionWithBrackets(tokens, startIndex + 2);
+            assertTokenIsPresent(assignmentReadResults, "Expecting expression to assign, did not encounter one");
 
-            Statement statement = new Assignment(token.data, cursor.value(), tokens.subList(startIndex, cursor.nextIndex()).stream().map(Token::toString).collect(Collectors.joining()));
-            return new ReadResults<>(cursor.nextIndex(), statement);
+            Statement statement = new Assignment(token.data, assignmentReadResults.value(), tokens.subList(startIndex, assignmentReadResults.nextIndex()).stream().map(Token::toString).collect(Collectors.joining()));
+            return new ReadResults<>(assignmentReadResults.nextIndex(), statement);
         }
         return new ReadResults<>(-1, null);
-    }
-
-    private List<String> findVariableTokensUsed(List<Token> tokens) {
-        return tokens.stream()
-                .filter(token -> token instanceof VariableToken)
-                .map(token -> token.data)
-                .toList();
     }
 
     private ReadResults<Integer, Expression> readExpressionWithBrackets(List<Token> tokens, int startIndex) {
         Token token = tokens.get(startIndex);
         if (token instanceof OpeningBracketToken) {
-            ReadResults<Integer, Expression> cursor = readExpressionWithBrackets(tokens, startIndex + 1);
-            if (!(tokens.get(cursor.nextIndex()) instanceof ClosingBracketToken)) {
-                throw new IllegalStateException("No closing brackets");
-            }
-            List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, cursor.nextIndex()));
-            Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, cursor.nextIndex()).toString());
-            return new ReadResults<>(cursor.nextIndex() + 1, e);
+            ReadResults<Integer, Expression> expressionReadResults = readExpressionWithBrackets(tokens, startIndex + 1);
+            assertTokenIsPresent(expressionReadResults, "Expecting an expression in brackets, did not encounter one");
+
+            Token closingBracket = tokens.get(expressionReadResults.nextIndex());
+            assertTokenIsOfType(closingBracket, ClosingBracketToken.class);
+
+            List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, expressionReadResults.nextIndex()));
+            Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, expressionReadResults.nextIndex()).toString());
+            return new ReadResults<>(expressionReadResults.nextIndex() + 1, e);
         }
         return readExpression(tokens, startIndex);
     }
@@ -163,22 +134,17 @@ public class Parser {
     private ReadResults<Integer, Expression> readExpression(List<Token> tokens, int startIndex) {
         Token token = tryReadingToken(tokens, startIndex);
         if (token instanceof VariableToken || token instanceof ConstantToken) {
-            // we're good
-
+            int potentialLastTokenIndex = startIndex + 1;
             Token nextToken = tryReadingToken(tokens, startIndex + 1);
             if (nextToken instanceof OperatorToken) {
-                // call readExpressionWithBrackets
                 ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, startIndex + 2);
-                // merge
-                // rethink BODMAS rules here when merging - it doesn't matter for recognizing usages, but might be required to help with dead code pruning
-                List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, endIndex.nextIndex()));
-                Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, endIndex.nextIndex()).toString());
-                return new ReadResults<>(endIndex.nextIndex(), e);
-            } else {
-                List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, startIndex + 1));
-                Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, startIndex + 1).toString());
-                return new ReadResults<>(startIndex + 1, e);
+                // to do merge, rethink BODMAS rules here - it doesn't matter for recognizing usages, but might be required to help with dead code pruning
+                assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter one");
+                potentialLastTokenIndex = endIndex.nextIndex();
             }
+            List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, potentialLastTokenIndex));
+            Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, potentialLastTokenIndex).toString());
+            return new ReadResults<>(potentialLastTokenIndex, e);
         }
         return new ReadResults<>(-1, null);
     }
@@ -190,6 +156,12 @@ public class Parser {
         return tokens.get(index);
     }
 
+    private List<String> findVariableTokensUsed(List<Token> tokens) {
+        return tokens.stream()
+                .filter(token -> token instanceof VariableToken)
+                .map(token -> token.data)
+                .toList();
+    }
 
     private int readNextToken(char[] input, int startingPos, List<Token> tokens) {
         if (startingPos >= input.length) return -1;
@@ -252,5 +224,23 @@ public class Parser {
             }
         }
         return -1;
+    }
+
+    private static void assertTokenIsPresent(ReadResults<Integer, ?> readingResult, String errorMessage) {
+        if (readingResult.nextIndex() == -1) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    private static void assertTokenIsOfType(Token tokenToCheck, Class<? extends Token> tokenClass) {
+        if (!tokenClass.isInstance(tokenToCheck)) {
+            throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + tokenToCheck.getClass());
+        }
+    }
+
+    private static void assertTokenHasData(Token tokenToCheck, String expectedData) {
+        if (!Objects.equals(tokenToCheck.data, expectedData)) {
+            throw new IllegalArgumentException("Expected a token with data: " + expectedData + ", got " + tokenToCheck.data);
+        }
     }
 }
