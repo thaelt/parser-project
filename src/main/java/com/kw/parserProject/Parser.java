@@ -4,8 +4,6 @@ import com.kw.parserProject.statements.*;
 import com.kw.parserProject.tokens.*;
 import com.kw.parserProject.utility.Pair;
 
-import java.io.*;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,23 +15,12 @@ public class Parser {
 
     List<Statement> parse(String programCode) {
         // read input into list of tokens
-        InputStream inputStream = new ByteArrayInputStream(programCode.getBytes());
+        char[] charArray = programCode.toCharArray();
+        int startingPos = 0;
 
-        List<String> lines;
-        try (Reader reader = new InputStreamReader(inputStream, Charset.defaultCharset());
-             BufferedReader buffer = new BufferedReader(reader)) {
-            lines = buffer.readAllLines();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        while (startingPos != -1) {
+            startingPos = readNextToken(charArray, startingPos);
         }
-        lines.forEach(line -> {
-            char[] charArray = line.toCharArray();
-            int startingPos = 0;
-
-            while (startingPos != -1) {
-                startingPos = readNextToken(charArray, startingPos);
-            }
-        });
 
         // transform tokens into statements
         Pair<Integer, List<Statement>> program = readStatementList(new LinkedList<>(tokens), 0);
@@ -255,22 +242,35 @@ public class Parser {
 
     int readReservedKeyword(char[] input, int startingPos) {
         if (startingPos >= input.length) return -1;
-        if (startingPos + 1 < input.length && input[startingPos] == 'i' && input[startingPos + 1] == 'f') {
-            tokens.add(new KeywordToken("if"));
-            return startingPos + 2;
+        if (startingPos + 4 < input.length){
+            String keyword = new String(input, startingPos, 5);
+            if ("while".equals(keyword)) {
+                tokens.add(new KeywordToken("while"));
+                return startingPos + 5;
+            }
         }
-        if (startingPos + 2 < input.length && input[startingPos] == 'e' && input[startingPos + 1] == 'n' && input[startingPos + 2] == 'd') {
-            tokens.add(new KeywordToken("end"));
-            return startingPos + 3;
+        if (startingPos + 3 < input.length) {
+            String keyword = new String(input, startingPos, 4);
+            if ("else".equals(keyword)) {
+                tokens.add(new KeywordToken("else"));
+                return startingPos + 4;
+            }
         }
-        if (startingPos + 3 < input.length && input[startingPos] == 'e' && input[startingPos + 1] == 'l' && input[startingPos + 2] == 's' && input[startingPos + 3] == 'e') {
-            tokens.add(new KeywordToken("else"));
-            return startingPos + 4;
+        if (startingPos + 2 < input.length) {
+            String keyword = new String(input, startingPos, 3);
+            if ("end".equals(keyword)) {
+                tokens.add(new KeywordToken("end"));
+                return startingPos + 3;
+            }
         }
-        if (startingPos + 4 < input.length && input[startingPos] == 'w' && input[startingPos + 1] == 'h' && input[startingPos + 2] == 'i' && input[startingPos + 3] == 'l' && input[startingPos + 4] == 'e') {
-            tokens.add(new KeywordToken("while"));
-            return startingPos + 5;
+        if (startingPos + 1 < input.length) {
+            String keyword = new String(input, startingPos, 2);
+            if ("if".equals(keyword)) {
+                tokens.add(new KeywordToken("if"));
+                return startingPos + 2;
+            }
         }
+
         return -1;
     }
 
