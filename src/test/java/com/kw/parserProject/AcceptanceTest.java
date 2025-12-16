@@ -1,6 +1,7 @@
 package com.kw.parserProject;
 
 import com.kw.parserProject.statements.Statement;
+import com.kw.parserProject.tokens.Token;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -13,11 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AcceptanceTest {
 
+    Lexer lexer;
     Parser parser;
     UnusedStatementChecker unusedStatementChecker;
 
     @BeforeEach
     void setUp() {
+        lexer = new Lexer();
         parser = new Parser();
         unusedStatementChecker = new UnusedStatementChecker();
     }
@@ -26,7 +29,8 @@ public class AcceptanceTest {
     @MethodSource("basicTestCases")
     void shouldDetectUnusedStatements(String input, String expectedOutput) {
         // when
-        List<Statement> statements = parser.parse(input);
+        List<Token> tokens = lexer.extractTokens(input);
+        List<Statement> statements = parser.parse(tokens);
         List<Statement> actualOutput = unusedStatementChecker.getUnusedStatements(statements);
 
         // then

@@ -12,26 +12,10 @@ import java.util.stream.Collectors;
 
 public class Parser {
 
-    private static final List<Character> RECOGNIZED_OPERATORS = List.of('+', '-', '*', '/', '<', '>');
-    private static final List<String> RECOGNIZED_KEYWORDS = List.of("while", "else", "end", "if");
-
-    public List<Statement> parse(String programCode) {
-        List<Token> tokens = extractTokens(programCode);
+    public List<Statement> parse(List<Token> tokens) {
         ReadResults<Integer, List<Statement>> program = readStatementList(new LinkedList<>(tokens), 0);
 
         return program.value();
-    }
-
-    private List<Token> extractTokens(String programCode) {
-        List<Token> tokens = new LinkedList<>();
-        char[] charArray = programCode.toCharArray();
-        int startingPos = 0;
-
-        while (startingPos != -1) {
-            startingPos = readNextToken(charArray, startingPos, tokens);
-        }
-
-        return tokens;
     }
 
     private ReadResults<Integer, List<Statement>> readStatementList(List<Token> tokens, int startIndex) {
@@ -71,8 +55,7 @@ public class Parser {
                     potentialEndKeywordIndex = elseSectionReadResults.nextIndex();
                 }
                 Token endKeyword = tokens.get(potentialEndKeywordIndex);
-                assertTokenIsOfType(endKeyword, KeywordToken.class);
-                assertTokenHasData(endKeyword, "end");
+                assertTokenIsEndKeyword(endKeyword);
 
                 Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements, tokens.subList(startIndex, potentialEndKeywordIndex + 1).toString());
                 return new ReadResults<>(potentialEndKeywordIndex + 1, statement);
@@ -87,7 +70,7 @@ public class Parser {
                 int elseIfStatementIndex = readStatementListResults.nextIndex();
                 // end keyword
                 Token endKeyword = tokens.get(elseIfStatementIndex);
-                assertTokenHasData(endKeyword, "end");
+                assertTokenIsEndKeyword(endKeyword);
 
                 Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), tokens.subList(startIndex, elseIfStatementIndex + 1).toString());
                 return new ReadResults<>(elseIfStatementIndex + 1, whileStatement);
@@ -163,69 +146,6 @@ public class Parser {
                 .toList();
     }
 
-    private int readNextToken(char[] input, int startingPos, List<Token> tokens) {
-        if (startingPos >= input.length) return -1;
-        char character = input[startingPos];
-
-        if (Character.isWhitespace(character)) {
-            return startingPos + 1;
-        }
-
-        if (Character.isDigit(character)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(character);
-
-            int i = startingPos + 1;
-            while (i < input.length && Character.isDigit(input[i])) {
-                stringBuilder.append(input[i]);
-                i++;
-            }
-
-            tokens.add(new ConstantToken(stringBuilder.toString()));
-            return i;
-        }
-        if (character >= 'a' && character <= 'z') {
-            // check for reserved keywords
-            int readKeywordResults = readReservedKeyword(input, startingPos, tokens);
-            if (readKeywordResults != -1) return readKeywordResults;
-            tokens.add(new VariableToken(Character.toString(character)));
-            return startingPos + 1;
-        }
-        if (RECOGNIZED_OPERATORS.contains(character)) {
-            tokens.add(new OperatorToken(Character.toString(character)));
-            return startingPos + 1;
-        }
-        if (character == '=') {
-            tokens.add(new AssignmentToken());
-            return startingPos + 1;
-        }
-        if (character == '(') {
-            tokens.add(new OpeningBracketToken());
-            return startingPos + 1;
-        }
-        if (character == ')') {
-            tokens.add(new ClosingBracketToken());
-            return startingPos + 1;
-        }
-        return -1;
-    }
-
-    private int readReservedKeyword(char[] input, int startingPos, List<Token> tokens) {
-        if (startingPos >= input.length) return -1;
-        for (String recognizedKeyword : RECOGNIZED_KEYWORDS) {
-            int keywordLength = recognizedKeyword.length();
-
-            if (startingPos + keywordLength <= input.length) {
-                String keyword = new String(input, startingPos, keywordLength);
-                if (recognizedKeyword.equals(keyword)) {
-                    tokens.add(new KeywordToken(recognizedKeyword));
-                    return startingPos + keywordLength;
-                }
-            }
-        }
-        return -1;
-    }
-
     private static void assertTokenIsPresent(ReadResults<Integer, ?> readingResult, String errorMessage) {
         if (readingResult.nextIndex() == -1) {
             throw new IllegalArgumentException(errorMessage);
@@ -238,9 +158,10 @@ public class Parser {
         }
     }
 
-    private static void assertTokenHasData(Token tokenToCheck, String expectedData) {
-        if (!Objects.equals(tokenToCheck.data, expectedData)) {
-            throw new IllegalArgumentException("Expected a token with data: " + expectedData + ", got " + tokenToCheck.data);
+    private static void assertTokenIsEndKeyword(Token tokenToCheck) {
+        assertTokenIsOfType(tokenToCheck, KeywordToken.class);
+        if (!Objects.equals(tokenToCheck.data, "end")) {
+            throw new IllegalArgumentException("Expected a token with data: " + "end" + ", got " + tokenToCheck.data);
         }
     }
 }
