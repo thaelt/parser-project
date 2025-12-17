@@ -2,6 +2,7 @@ package com.kw.parserProject;
 
 import com.kw.parserProject.tokens.*;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -10,8 +11,16 @@ public class Lexer {
     private static final List<String> RECOGNIZED_KEYWORDS = List.of("while", "else", "end", "if");
 
     public List<Token> extractTokens(String programCode) {
+        return programCode.lines()
+                .map(this::parseLine)
+                .flatMap(Collection::stream)
+                .toList();
+    }
+
+    List<Token> parseLine(String line) {
         List<Token> tokens = new LinkedList<>();
-        char[] charArray = programCode.toCharArray();
+
+        char[] charArray = line.toCharArray();
         int startingPos = 0;
 
         while (startingPos != -1) {
@@ -46,7 +55,8 @@ public class Lexer {
             // check for reserved keywords
             int readKeywordResults = readReservedKeyword(input, startingPos, tokens);
             if (readKeywordResults != -1) return readKeywordResults;
-            tokens.add(new VariableToken(Character.toString(character)));
+            String variableName = readIdentifier(input, startingPos);
+            tokens.add(new VariableToken(variableName));
             return startingPos + 1;
         }
         if (RECOGNIZED_OPERATORS.contains(character)) {
@@ -66,6 +76,25 @@ public class Lexer {
             return startingPos + 1;
         }
         return -1;
+    }
+
+    private String readIdentifier(char[] input, int startingPos) {
+        int identifierLength = 0;
+        int readTokensLimit = 5; // to avoid reading extremely long identifier which we'll fail anyway
+        int lastIndex = startingPos;
+        while (identifierLength < readTokensLimit &&
+                input.length > lastIndex
+                && input[lastIndex] >= 'a' && input[lastIndex] <= 'z') {
+            lastIndex++;
+            identifierLength++;
+        }
+
+        String identifier = new String(input, startingPos, identifierLength);
+        if (identifierLength != 1) {
+            throw new IllegalArgumentException("Identifiers are expected to be one-characters only, " +
+                    "encountered identifier starting with: " + identifier);
+        }
+        return identifier;
     }
 
     private int readReservedKeyword(char[] input, int startingPos, List<Token> tokens) {
