@@ -2,7 +2,6 @@ package com.kw.parserProject;
 
 import com.kw.parserProject.statements.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -176,8 +175,6 @@ class UnusedStatementCheckerTest {
         assertEquals(xIsSix, results.get(1));
     }
 
-
-    @Disabled("Not yet implemented - requires better if statement handling or branch eval, possibly both")
     @Test
     void shouldHandleUsingVariableFromIfElseStatement() {
         // given

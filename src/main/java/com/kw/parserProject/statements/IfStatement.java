@@ -15,6 +15,17 @@ public class IfStatement extends Statement {
         this.elseClauseStatements = elseClauseStatements;
     }
 
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public List<Statement> getIfClauseStatements() {
+        return ifClauseStatements;
+    }
+
+    public List<Statement> getElseClauseStatements() {
+        return elseClauseStatements;
+    }
 
     @Override
     public String writeVariable() {
