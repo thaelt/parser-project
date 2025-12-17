@@ -75,7 +75,7 @@ public class Lexer {
             tokens.add(new ClosingBracketToken());
             return startingPos + 1;
         }
-        return -1;
+        throw new IllegalArgumentException("Cannot recognize token at position: "+startingPos);
     }
 
     private String readIdentifier(char[] input, int startingPos) {

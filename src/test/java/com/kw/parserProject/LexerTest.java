@@ -63,6 +63,12 @@ class LexerTest {
         assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(illegalVariable));
     }
 
+    @Test
+    void shouldFailOnUnknownCharacter(){
+        // expect
+        assertThrows(IllegalArgumentException.class, () -> lexer.parseLine("💩"));
+    }
+
     public static Stream<Arguments> basicTokenTestCases() {
         return Stream.of(
                 Arguments.of("x", VariableToken.class, "x"),
