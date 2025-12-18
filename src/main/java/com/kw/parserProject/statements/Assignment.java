@@ -16,6 +16,10 @@ public class Assignment extends Statement {
         return writeVariable;
     }
 
+    public Expression getExpression() {
+        return expression;
+    }
+
     @Override
     public List<String> postVisitReadVariable() {
         return List.of();

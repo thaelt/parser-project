@@ -114,9 +114,9 @@ public class Parser {
         return switch (token) {
             case OpeningBracketToken _ -> handleOpeningBracket(tokens, startIndex);
             case VariableToken variableToken ->
-                    handleVariableOrConstant(tokens, startIndex, wrapInExpression(variableToken));
+                    chainIfPossible(tokens, startIndex, wrapInExpression(variableToken));
             case ConstantToken constantToken ->
-                    handleVariableOrConstant(tokens, startIndex, wrapInExpression(constantToken));
+                    chainIfPossible(tokens, startIndex, wrapInExpression(constantToken));
             case null, default -> new ReadResults<>(-1, null);
         };
     }
@@ -129,25 +129,45 @@ public class Parser {
         assertTokenIsOfType(closingBracket, ClosingBracketToken.class);
 
         Expression expression = new Expression(expressionReadResults.value());
-        return new ReadResults<>(expressionReadResults.nextIndex() + 1, expression);
+
+        return chainIfPossible(tokens, expressionReadResults.nextIndex(), expression);
     }
 
-    private ReadResults<Integer, Expression> handleVariableOrConstant(List<Token> tokens, int startIndex, Expression expression) {
+    private ReadResults<Integer, Expression> chainIfPossible(List<Token> tokens, int startIndex, Expression expression) {
         int potentialLastTokenIndex = startIndex + 1;
         Token nextToken = tryReadingToken(tokens, startIndex + 1);
         if (nextToken instanceof OperatorToken) {
-            ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, startIndex + 2);
-            assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter one");
-
-            // balance: if next expression is a variable or constant, just merge it
-            // to do merge, rethink BODMAS rules here - it doesn't matter for recognizing usages, but might be required to help with dead code pruning
-
-            Expression chainedExpression = new Expression(expression, nextToken.data, endIndex.value());
-
-            return new ReadResults<>(endIndex.nextIndex(), chainedExpression);
+            return chainExpressions(tokens, expression, potentialLastTokenIndex, nextToken);
         }
 
         return new ReadResults<>(potentialLastTokenIndex, expression);
+    }
+
+    private ReadResults<Integer, Expression> chainExpressions(List<Token> tokens, Expression expression, int potentialLastTokenIndex, Token nextToken) {
+        ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, potentialLastTokenIndex + 1);
+        assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter one");
+
+        // we're collecting chained assignments from right to left, due to recursion call.
+        // it is not a problem with basic unused variable usage analysis as order of operation is not important for it.
+        // rotating helps to fix some discrepancies with operation order.
+        // it is not perfect (should use left predecessor rule, not right child rule), but works
+        String operator = nextToken.data;
+        Expression rightSideExpression = endIndex.value();
+        if (("*".equals(operator) || "/".equals(operator)) && rightSideExpression.isOperatorExpression()) {
+            Expression rotatedExpression = rotateExpressions(expression, operator, rightSideExpression);
+            return new ReadResults<>(endIndex.nextIndex(), rotatedExpression);
+        }
+
+        Expression chainedExpression = new Expression(expression, operator, rightSideExpression);
+        return new ReadResults<>(endIndex.nextIndex(), chainedExpression);
+    }
+
+    private static Expression rotateExpressions(Expression leftSideExpression, String operator, Expression rightSideExpression) {
+        Expression newLeftExpression = new Expression(leftSideExpression, operator, rightSideExpression.getLeftExpression());
+        String newTopOperator = rightSideExpression.getOperator();
+        Expression newRightExpression = rightSideExpression.getRightExpression();
+
+        return new Expression(newLeftExpression, newTopOperator, newRightExpression);
     }
 
     private Expression wrapInExpression(VariableToken variableToken) {

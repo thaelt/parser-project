@@ -32,17 +32,57 @@ public class Expression {
         this.expressionInBrackets = expressionInBrackets;
     }
 
+    public boolean isOperatorExpression() {
+        return operator != null;
+    }
+
+    public boolean isVariableExpression() {
+        return variable != null;
+    }
+
+    public boolean isValueExpression() {
+        return value != null;
+    }
+
+    public boolean isBracketExpression() {
+        return expressionInBrackets != null;
+    }
+
+    public String getVariable() {
+        return variable;
+    }
+
+    public Integer getValue() {
+        return value;
+    }
+
+    public Expression getExpressionInBrackets() {
+        return expressionInBrackets;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public Expression getLeftExpression() {
+        return leftExpression;
+    }
+
+    public Expression getRightExpression() {
+        return rightExpression;
+    }
+
     public List<String> readVariables() {
         // value - do nothing
-        if (value != null) {
+        if (isValueExpression()) {
             return List.of();
         }
         // variable case
-        if (variable != null) {
+        if (isVariableExpression()) {
             return List.of(variable);
         }
         // brackets - just delegate
-        if (expressionInBrackets != null) {
+        if (isBracketExpression()) {
             return expressionInBrackets.readVariables();
         }
         // operators - return both operand sides,
@@ -50,4 +90,5 @@ public class Expression {
         usedVariables.addAll(rightExpression.readVariables());
         return new ArrayList<>(usedVariables);
     }
+
 }

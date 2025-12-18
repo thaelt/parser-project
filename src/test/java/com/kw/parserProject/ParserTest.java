@@ -1,9 +1,6 @@
 package com.kw.parserProject;
 
-import com.kw.parserProject.statements.Assignment;
-import com.kw.parserProject.statements.IfStatement;
-import com.kw.parserProject.statements.Statement;
-import com.kw.parserProject.statements.WhileStatement;
+import com.kw.parserProject.statements.*;
 import com.kw.parserProject.tokens.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +61,20 @@ class ParserTest {
 
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
+
+        // y - rightExpression
+        Expression topTierExpression = actualStatement.getExpression();
+        assertOperator(topTierExpression, "-");
+        assertVariableExpression(topTierExpression.getLeftExpression(), "y");
+
+        // rightExpression -> x * 2
+        Expression rightExpression = topTierExpression.getRightExpression();
+        assertOperator(rightExpression, "*");
+        assertVariableExpression(rightExpression.getLeftExpression(), "x");
+        assertValueExpression(rightExpression.getRightExpression(), 2);
+
+        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+
         assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
     }
 
@@ -81,6 +92,19 @@ class ParserTest {
 
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
+
+        // leftExpression - 2
+        Expression topTierExpression = actualStatement.getExpression();
+        assertOperator(topTierExpression, "-");
+
+        assertVariableExpression(topTierExpression.getRightExpression(), "y");
+
+        // leftExpression -> x * 2
+        Expression leftExpression = topTierExpression.getLeftExpression();
+        assertOperator(leftExpression, "*");
+        assertVariableExpression(leftExpression.getLeftExpression(), "x");
+        assertValueExpression(leftExpression.getRightExpression(), 2);
+
         assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
     }
 
@@ -99,8 +123,140 @@ class ParserTest {
 
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
+
+        Expression topTierExpression = actualStatement.getExpression();
+        // x * rightExpression
+        assertOperator(topTierExpression, "*");
+        assertVariableExpression(topTierExpression.getLeftExpression(), "x");
+        assertTrue(topTierExpression.getRightExpression().isBracketExpression());
+
+        // rightExpression -> expressionInBracket -> ( 2 - y )
+        Expression expressionInBrackets = topTierExpression.getRightExpression().getExpressionInBrackets();
+        // 2 - y
+        assertOperator(expressionInBrackets, "-");
+        assertValueExpression(expressionInBrackets.getLeftExpression(), 2);
+        assertVariableExpression(expressionInBrackets.getRightExpression(), "y");
+
         assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
     }
+
+    @Test
+    void shouldRecognizeAssignmentWithMultipleMultiplicationsWithOperatorBalancing() {
+        // when
+        // operator balancing not yet implemented fully
+        // x = 2 * x + y / 5
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                new ConstantToken("2"), new OperatorToken("*"), new VariableToken("x"),
+                new OperatorToken("+"),
+                new VariableToken("y"), new OperatorToken("/"), new ConstantToken("5")));
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+
+        Expression topTierExpression = actualStatement.getExpression();
+        // leftExpression * rightExpression
+        assertOperator(topTierExpression, "+");
+
+        // leftExpression -> 2 * x
+        Expression leftExpression = topTierExpression.getLeftExpression();
+        assertOperator(leftExpression, "*");
+
+        assertValueExpression(leftExpression.getLeftExpression(), 2);
+        assertVariableExpression(leftExpression.getRightExpression(), "x");
+
+        // rightExpression -> y / 5
+        Expression rightExpression = topTierExpression.getRightExpression();
+        assertOperator(rightExpression, "/");
+
+        assertVariableExpression(rightExpression.getLeftExpression(), "y");
+        assertValueExpression(rightExpression.getRightExpression(), 5);
+
+        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+    }
+
+    @Test
+    void shouldHandleMultipleMultiplicationsWithOperatorBalancing() {
+        // when
+        // operator balancing not yet implemented fully
+        // x = x * y * z / a
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                new VariableToken("x"),
+                new OperatorToken("*"), new VariableToken("y"),
+                new OperatorToken("*"), new VariableToken("z"),
+                new OperatorToken("/"), new VariableToken("a")));
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+
+        Expression topTierExpression = actualStatement.getExpression();
+        // leftExpression / a
+        assertOperator(topTierExpression, "/");
+
+        Expression rightExpression = topTierExpression.getRightExpression();
+        assertVariableExpression(rightExpression, "a");
+
+        // leftExpression -> x * y * z
+        // x -> left, y * z -> right, due to rotation
+        Expression secondLevelLeftExpression = topTierExpression.getLeftExpression();
+        assertOperator(secondLevelLeftExpression, "*");
+
+        assertVariableExpression(secondLevelLeftExpression.getLeftExpression(), "x");
+        Expression thirdTierExpression = secondLevelLeftExpression.getRightExpression();
+        assertOperator(thirdTierExpression, "*");
+        assertVariableExpression(thirdTierExpression.getLeftExpression(), "y");
+        assertVariableExpression(thirdTierExpression.getRightExpression(), "z");
+
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.readVariables());
+    }
+
+    @Test
+    void shouldHandleBracketsAndMultipleOperatorsWithOperatorBalancing() {
+        // when
+        // operator balancing not yet implemented fully
+        // x = x * ( y + z ) / a
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                new VariableToken("x"), new OperatorToken("*"),
+                new OpeningBracketToken(), new VariableToken("y"), new OperatorToken("+"), new VariableToken("z"), new ClosingBracketToken(),
+                new OperatorToken("/"), new VariableToken("a")));
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+
+        Expression topTierExpression = actualStatement.getExpression();
+        // leftExpression / a
+        assertOperator(topTierExpression, "/");
+
+        Expression rightExpression = topTierExpression.getRightExpression();
+        assertVariableExpression(rightExpression, "a");
+
+        // x * ( y + z )
+        Expression secondLevelLeftExpression = topTierExpression.getLeftExpression();
+        assertOperator(secondLevelLeftExpression, "*");
+
+        assertVariableExpression(secondLevelLeftExpression.getLeftExpression(), "x");
+        Expression thirdTierExpression = secondLevelLeftExpression.getRightExpression();
+
+        assertTrue(thirdTierExpression.isBracketExpression());
+        Expression expressionInBracket = thirdTierExpression.getExpressionInBrackets();
+
+        assertVariableExpression(expressionInBracket.getLeftExpression(), "y");
+        assertVariableExpression(expressionInBracket.getRightExpression(), "z");
+
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.readVariables());
+    }
+
 
     @Test
     void shouldRecognizeAssignmentReadingVariable() {
@@ -257,6 +413,21 @@ class ParserTest {
                 List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
                         new KeywordToken("end"))
         ));
+    }
+
+    private static void assertOperator(Expression operatorExpression, String expected) {
+        assertTrue(operatorExpression.isOperatorExpression());
+        assertEquals(expected, operatorExpression.getOperator());
+    }
+
+    private static void assertValueExpression(Expression valueExpression, int expected) {
+        assertTrue(valueExpression.isValueExpression());
+        assertEquals(expected, valueExpression.getValue());
+    }
+
+    private static void assertVariableExpression(Expression variableExpression, String expected) {
+        assertTrue(variableExpression.isVariableExpression());
+        assertEquals(expected, variableExpression.getVariable());
     }
 
 }

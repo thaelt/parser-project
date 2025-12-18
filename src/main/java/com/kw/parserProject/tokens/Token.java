@@ -7,10 +7,4 @@ public class Token {
         this.data = data;
     }
 
-    @Override
-    public String toString() {
-        return "Token{" +
-                "data=" + data +
-                '}';
-    }
 }
