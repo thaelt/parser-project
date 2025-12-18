@@ -13,6 +13,9 @@ public class Parser {
 
     public List<Statement> parse(List<Token> tokens) {
         ReadResults<Integer, List<Statement>> program = readStatementList(new ArrayList<>(tokens), 0);
+        if (program.nextIndex() != tokens.size()) {
+            throw new IllegalArgumentException("Did not manage to consume all tokens");
+        }
 
         return program.value();
     }
@@ -20,6 +23,9 @@ public class Parser {
     private ReadResults<Integer, List<Statement>> readStatementList(List<Token> tokens, int startIndex) {
         List<Statement> statements = new ArrayList<>();
         ReadResults<Integer, Statement> resultIndex = readConditionStatement(tokens, startIndex);
+        if (resultIndex.nextIndex() == -1) {
+            throw new IllegalArgumentException("Expecting at least one statement");
+        }
         int previousSuccessIndex = -1;
         while (resultIndex.nextIndex() != -1) {
             previousSuccessIndex = resultIndex.nextIndex();
@@ -55,13 +61,13 @@ public class Parser {
         ReadResults<Integer, List<Statement>> readStatementListResults = readStatementList(tokens, whileExpressionReadResults.nextIndex());
         assertTokenIsPresent(readStatementListResults, "Expecting statements in 'while' loop, did not encounter one");
 
-        int elseIfStatementIndex = readStatementListResults.nextIndex();
+        int endStatementIndex = readStatementListResults.nextIndex();
         // end keyword
-        Token endKeyword = tokens.get(elseIfStatementIndex);
+        Token endKeyword = tryReadingToken(tokens, endStatementIndex);
         assertTokenIsEndKeyword(endKeyword);
 
-        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), tokens.subList(startIndex, elseIfStatementIndex + 1).toString());
-        return new ReadResults<>(elseIfStatementIndex + 1, whileStatement);
+        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), tokens.subList(startIndex, endStatementIndex + 1).toString());
+        return new ReadResults<>(endStatementIndex + 1, whileStatement);
     }
 
     private ReadResults<Integer, Statement> handleIfStatement(List<Token> tokens, int startIndex) {
@@ -107,8 +113,10 @@ public class Parser {
         Token token = tryReadingToken(tokens, startIndex);
         return switch (token) {
             case OpeningBracketToken _ -> handleOpeningBracket(tokens, startIndex);
-            case VariableToken variableToken -> handleVariableOrConstant(tokens, startIndex, wrapInExpression(variableToken));
-            case ConstantToken constantToken -> handleVariableOrConstant(tokens, startIndex, wrapInExpression(constantToken));
+            case VariableToken variableToken ->
+                    handleVariableOrConstant(tokens, startIndex, wrapInExpression(variableToken));
+            case ConstantToken constantToken ->
+                    handleVariableOrConstant(tokens, startIndex, wrapInExpression(constantToken));
             case null, default -> new ReadResults<>(-1, null);
         };
     }
@@ -165,7 +173,7 @@ public class Parser {
 
     private static void assertTokenIsOfType(Token tokenToCheck, Class<? extends Token> tokenClass) {
         if (!tokenClass.isInstance(tokenToCheck)) {
-            throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + tokenToCheck.getClass());
+            throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + (tokenToCheck == null ? "null" : tokenToCheck.getClass().toString()));
         }
     }
 
