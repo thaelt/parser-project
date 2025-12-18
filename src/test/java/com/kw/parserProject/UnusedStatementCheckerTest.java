@@ -12,6 +12,14 @@ class UnusedStatementCheckerTest {
 
     UnusedStatementChecker unusedStatementChecker;
 
+    // commonly defined statements/conditions:
+    Assignment xIsFive = new Assignment("x", new Expression(5), "x = 5");
+    Assignment xIsSix = new Assignment("x", new Expression(6), "x = 6");
+    Assignment yIsXPlusTwo = new Assignment("y", new Expression(new Expression("x"), "+", new Expression(2)), "y = x + 2");
+    Assignment zIsXPlusThree = new Assignment("z", new Expression(new Expression("x"), "+", new Expression(3)), "z = x + 3");
+    Expression xLessThanFive = new Expression(new Expression("x"), "<", new Expression(5));
+    Expression zLessThanFive = new Expression(new Expression("z"), "<", new Expression(5));
+
     @BeforeEach
     void setUp() {
         unusedStatementChecker = new UnusedStatementChecker();
@@ -20,7 +28,6 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleSingleAssignment() {
         // given
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
         List<Statement> statements = List.of(
                 xIsFive
         );
@@ -36,8 +43,6 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldPickAllAssignmentsForSameVariable() {
         // given
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsSix = new Assignment("x", new Expression(List.of(), "6"), "x = 6");
         List<Statement> statements = List.of(
                 xIsFive, xIsSix
         );
@@ -54,10 +59,6 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldPickOnlyLastUnusedAssignmentIfVariableIsReadSeveralTimes() {
         // given
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsSix = new Assignment("x", new Expression(List.of(), "6"), "x = 6");
-        Assignment yIsXPlusTwo = new Assignment("y", new Expression(List.of("x"), "x + 2"), "y = x + 2");
-        Assignment zIsXPlusThree = new Assignment("z", new Expression(List.of("x"), "x + 3"), "z = x + 3");
         List<Statement> statements = List.of(
                 xIsFive, xIsSix, yIsXPlusTwo, zIsXPlusThree
         );
@@ -75,10 +76,8 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleStatementDefinedTwiceIfNeverRead() {
         // given
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsFiveAgain = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
         List<Statement> statements = List.of(
-                xIsFive, xIsFiveAgain
+                xIsFive, xIsFive
         );
 
         // when
@@ -87,17 +86,14 @@ class UnusedStatementCheckerTest {
         // then
         assertEquals(2, results.size());
         assertEquals(xIsFive, results.getFirst());
-        assertEquals(xIsFiveAgain, results.get(1));
+        assertEquals(xIsFive, results.get(1));
     }
 
     @Test
     void shouldHandleStatementDefinedTwiceIfRead() {
         // given
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsFiveAgain = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment yIsXPlusTwo = new Assignment("y", new Expression(List.of("x"), "x + 2"), "y = x + 2");
         List<Statement> statements = List.of(
-                xIsFive, xIsFiveAgain, yIsXPlusTwo
+                xIsFive, xIsFive, yIsXPlusTwo
         );
 
         // when
@@ -113,10 +109,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldMarkVariableUsedInWhileConditionAsRead() {
         // given
-        Expression condition = new Expression(List.of("x"), "(x < 5)");
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-
-        Statement whileStatement = new WhileStatement(condition, List.of(xIsFive), "while (x < 5) x=5 end");
+        Statement whileStatement = new WhileStatement(xLessThanFive, List.of(xIsFive), "while (x < 5) x=5 end");
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
@@ -128,10 +121,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldMarkUnusedAssignmentFromWhileLoop() {
         // given
-        Expression condition = new Expression(List.of("z"), "(z < 5)");
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-
-        Statement whileStatement = new WhileStatement(condition, List.of(xIsFive), "while (x < 5) x=5 end");
+        Statement whileStatement = new WhileStatement(zLessThanFive, List.of(xIsFive), "while (z < 5) x=5 end");
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
@@ -144,10 +134,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleIfStatement() {
         // given
-        Expression condition = new Expression(List.of("z"), "(z < 5)");
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-
-        Statement ifStatement = new IfStatement(condition, List.of(xIsFive), List.of(), "if (z<5) x=5 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(), "if (z<5) x=5 end");
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
@@ -160,11 +147,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleIfElseStatement() {
         // given
-        Expression condition = new Expression(List.of("z"), "(z < 5)");
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsSix = new Assignment("x", new Expression(List.of(), "6"), "x = 6");
-
-        Statement ifStatement = new IfStatement(condition, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
@@ -178,12 +161,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleUsingVariableFromIfElseStatement() {
         // given
-        Expression condition = new Expression(List.of("z"), "(z < 5)");
-        Assignment xIsFive = new Assignment("x", new Expression(List.of(), "5"), "x = 5");
-        Assignment xIsSix = new Assignment("x", new Expression(List.of(), "6"), "x = 6");
-        Assignment yIsXPlusTwo = new Assignment("y", new Expression(List.of("x"), "x + 2"), "y = x + 2");
-
-        Statement ifStatement = new IfStatement(condition, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement, yIsXPlusTwo));

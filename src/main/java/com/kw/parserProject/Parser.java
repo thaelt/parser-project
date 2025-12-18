@@ -107,7 +107,8 @@ public class Parser {
         Token token = tryReadingToken(tokens, startIndex);
         return switch (token) {
             case OpeningBracketToken _ -> handleOpeningBracket(tokens, startIndex);
-            case VariableToken _, ConstantToken _ -> handleVariableOrConstant(tokens, startIndex);
+            case VariableToken variableToken -> handleVariableOrConstant(tokens, startIndex, wrapInExpression(variableToken));
+            case ConstantToken constantToken -> handleVariableOrConstant(tokens, startIndex, wrapInExpression(constantToken));
             case null, default -> new ReadResults<>(-1, null);
         };
     }
@@ -119,23 +120,34 @@ public class Parser {
         Token closingBracket = tokens.get(expressionReadResults.nextIndex());
         assertTokenIsOfType(closingBracket, ClosingBracketToken.class);
 
-        List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, expressionReadResults.nextIndex()));
-        Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, expressionReadResults.nextIndex()).toString());
-        return new ReadResults<>(expressionReadResults.nextIndex() + 1, e);
+        Expression expression = new Expression(expressionReadResults.value());
+        return new ReadResults<>(expressionReadResults.nextIndex() + 1, expression);
     }
 
-    private ReadResults<Integer, Expression> handleVariableOrConstant(List<Token> tokens, int startIndex) {
+    private ReadResults<Integer, Expression> handleVariableOrConstant(List<Token> tokens, int startIndex, Expression expression) {
         int potentialLastTokenIndex = startIndex + 1;
         Token nextToken = tryReadingToken(tokens, startIndex + 1);
         if (nextToken instanceof OperatorToken) {
             ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, startIndex + 2);
-            // to do merge, rethink BODMAS rules here - it doesn't matter for recognizing usages, but might be required to help with dead code pruning
             assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter one");
-            potentialLastTokenIndex = endIndex.nextIndex();
+
+            // balance: if next expression is a variable or constant, just merge it
+            // to do merge, rethink BODMAS rules here - it doesn't matter for recognizing usages, but might be required to help with dead code pruning
+
+            Expression chainedExpression = new Expression(expression, nextToken.data, endIndex.value());
+
+            return new ReadResults<>(endIndex.nextIndex(), chainedExpression);
         }
-        List<String> variableTokensUsed = findVariableTokensUsed(tokens.subList(startIndex, potentialLastTokenIndex));
-        Expression e = new Expression(variableTokensUsed, tokens.subList(startIndex, potentialLastTokenIndex).toString());
-        return new ReadResults<>(potentialLastTokenIndex, e);
+
+        return new ReadResults<>(potentialLastTokenIndex, expression);
+    }
+
+    private Expression wrapInExpression(VariableToken variableToken) {
+        return new Expression(variableToken.data);
+    }
+
+    private Expression wrapInExpression(ConstantToken constantToken) {
+        return new Expression(Integer.parseInt(constantToken.data));
     }
 
     private Token tryReadingToken(List<Token> tokens, int index) {
@@ -143,13 +155,6 @@ public class Parser {
             return null;
         }
         return tokens.get(index);
-    }
-
-    private List<String> findVariableTokensUsed(List<Token> tokens) {
-        return tokens.stream()
-                .filter(token -> token instanceof VariableToken)
-                .map(token -> token.data)
-                .toList();
     }
 
     private static void assertTokenIsPresent(ReadResults<Integer, ?> readingResult, String errorMessage) {
