@@ -66,7 +66,7 @@ public class Parser {
         Token endKeyword = tryReadingToken(tokens, endStatementIndex);
         assertTokenIsEndKeyword(endKeyword);
 
-        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), tokens.subList(startIndex, endStatementIndex + 1).toString());
+        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value());
         return new ReadResults<>(endStatementIndex + 1, whileStatement);
     }
 
@@ -94,7 +94,7 @@ public class Parser {
         Token endKeyword = tokens.get(potentialEndKeywordIndex);
         assertTokenIsEndKeyword(endKeyword);
 
-        Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements, tokens.subList(startIndex, potentialEndKeywordIndex + 1).toString());
+        Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements);
         return new ReadResults<>(potentialEndKeywordIndex + 1, statement);
     }
 

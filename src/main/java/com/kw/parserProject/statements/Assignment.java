@@ -1,18 +1,17 @@
 package com.kw.parserProject.statements;
 
-import java.util.List;
+public final class Assignment implements Statement {
+    private final String writeVariable;
+    private final Expression expression;
+    private final String content;
 
-public class Assignment extends Statement {
-    String writeVariable;
-    Expression expression;
     public Assignment(String writeVariable, Expression expression, String content) {
-        super(content);
+        this.content = content;
         this.writeVariable = writeVariable;
         this.expression = expression;
     }
 
-    @Override
-    public String writeVariable() {
+    public String getWriteVariable() {
         return writeVariable;
     }
 
@@ -21,17 +20,7 @@ public class Assignment extends Statement {
     }
 
     @Override
-    public List<String> postVisitReadVariable() {
-        return List.of();
-    }
-
-    @Override
-    public List<String> readVariables() {
-        return expression.readVariables();
-    }
-
-    @Override
-    public List<Statement> subStatements() {
-        return List.of();
+    public String toString() {
+        return content;
     }
 }

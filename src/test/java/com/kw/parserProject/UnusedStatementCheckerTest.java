@@ -109,7 +109,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldMarkVariableUsedInWhileConditionAsRead() {
         // given
-        Statement whileStatement = new WhileStatement(xLessThanFive, List.of(xIsFive), "while (x < 5) x=5 end");
+        Statement whileStatement = new WhileStatement(xLessThanFive, List.of(xIsFive));
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
@@ -121,7 +121,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldMarkUnusedAssignmentFromWhileLoop() {
         // given
-        Statement whileStatement = new WhileStatement(zLessThanFive, List.of(xIsFive), "while (z < 5) x=5 end");
+        Statement whileStatement = new WhileStatement(zLessThanFive, List.of(xIsFive));
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
@@ -134,7 +134,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleIfStatement() {
         // given
-        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(), "if (z<5) x=5 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of());
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
@@ -147,7 +147,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleIfElseStatement() {
         // given
-        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix));
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
@@ -161,7 +161,7 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldHandleUsingVariableFromIfElseStatement() {
         // given
-        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix), "if (z<5) x=5 else x=6 end");
+        Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix));
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement, yIsXPlusTwo));

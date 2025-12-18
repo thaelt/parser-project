@@ -29,8 +29,8 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
-        assertEquals(0, actualStatement.readVariables().size());
+        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals(0, actualStatement.getExpression().readVariables().size());
     }
 
     @Test
@@ -44,8 +44,8 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
-        assertIterableEquals(List.of("x"), actualStatement.readVariables());
+        assertEquals("x", actualStatement.getWriteVariable());
+        assertIterableEquals(List.of("x"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -60,7 +60,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         // y - rightExpression
         Expression topTierExpression = actualStatement.getExpression();
@@ -73,9 +73,9 @@ class ParserTest {
         assertVariableExpression(rightExpression.getLeftExpression(), "x");
         assertValueExpression(rightExpression.getRightExpression(), 2);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -91,7 +91,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         // leftExpression - 2
         Expression topTierExpression = actualStatement.getExpression();
@@ -105,7 +105,7 @@ class ParserTest {
         assertVariableExpression(leftExpression.getLeftExpression(), "x");
         assertValueExpression(leftExpression.getRightExpression(), 2);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -122,7 +122,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         Expression topTierExpression = actualStatement.getExpression();
         // x * rightExpression
@@ -137,7 +137,7 @@ class ParserTest {
         assertValueExpression(expressionInBrackets.getLeftExpression(), 2);
         assertVariableExpression(expressionInBrackets.getRightExpression(), "y");
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -155,7 +155,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         Expression topTierExpression = actualStatement.getExpression();
         // leftExpression * rightExpression
@@ -175,7 +175,7 @@ class ParserTest {
         assertVariableExpression(rightExpression.getLeftExpression(), "y");
         assertValueExpression(rightExpression.getRightExpression(), 5);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -194,7 +194,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         Expression topTierExpression = actualStatement.getExpression();
         // leftExpression / a
@@ -214,7 +214,7 @@ class ParserTest {
         assertVariableExpression(thirdTierExpression.getLeftExpression(), "y");
         assertVariableExpression(thirdTierExpression.getRightExpression(), "z");
 
-        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.readVariables());
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.getExpression().readVariables());
     }
 
     @Test
@@ -232,7 +232,7 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
+        assertEquals("x", actualStatement.getWriteVariable());
 
         Expression topTierExpression = actualStatement.getExpression();
         // leftExpression / a
@@ -254,7 +254,7 @@ class ParserTest {
         assertVariableExpression(expressionInBracket.getLeftExpression(), "y");
         assertVariableExpression(expressionInBracket.getRightExpression(), "z");
 
-        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.readVariables());
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.getExpression().readVariables());
     }
 
 
@@ -268,10 +268,10 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.writeVariable());
-        assertEquals(1, actualStatement.readVariables().size());
+        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals(1, actualStatement.getExpression().readVariables().size());
 
-        assertEquals("y", actualStatement.readVariables().getFirst());
+        assertEquals("y", actualStatement.getExpression().readVariables().getFirst());
     }
 
     @Test
@@ -287,17 +287,16 @@ class ParserTest {
         assertInstanceOf(IfStatement.class, statements.getFirst());
 
         IfStatement actualStatement = (IfStatement) statements.getFirst();
-        assertNull(actualStatement.writeVariable());
 
         // if-clause - one assignment
-        assertEquals(1, actualStatement.getIfClauseStatements().size());
+        assertEquals(1, actualStatement.ifClauseStatements().size());
 
         // else clause - empty
-        assertEquals(0, actualStatement.getElseClauseStatements().size());
+        assertEquals(0, actualStatement.elseClauseStatements().size());
 
         // read variables from condition
-        assertEquals(1, actualStatement.readVariables().size());
-        assertEquals("a", actualStatement.readVariables().getFirst());
+        assertEquals(1, actualStatement.condition().readVariables().size());
+        assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
 
     @Test
@@ -315,17 +314,16 @@ class ParserTest {
         assertInstanceOf(IfStatement.class, statements.getFirst());
 
         IfStatement actualStatement = (IfStatement) statements.getFirst();
-        assertNull(actualStatement.writeVariable());
 
         // if-clause - one assignment
-        assertEquals(1, actualStatement.getIfClauseStatements().size());
+        assertEquals(1, actualStatement.ifClauseStatements().size());
 
         // else clause - one assignment
-        assertEquals(1, actualStatement.getElseClauseStatements().size());
+        assertEquals(1, actualStatement.elseClauseStatements().size());
 
         // read variables from condition
-        assertEquals(1, actualStatement.readVariables().size());
-        assertEquals("a", actualStatement.readVariables().getFirst());
+        assertEquals(1, actualStatement.condition().readVariables().size());
+        assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
 
     @Test
@@ -341,14 +339,12 @@ class ParserTest {
         assertInstanceOf(WhileStatement.class, statements.getFirst());
 
         WhileStatement actualStatement = (WhileStatement) statements.getFirst();
-        assertNull(actualStatement.writeVariable());
 
-        assertEquals(1, actualStatement.subStatements().size());
+        assertEquals(1, actualStatement.statements().size());
 
-        // read variables from condition - this part might require better handling/asserts
-        assertEquals(0, actualStatement.readVariables().size());
-        assertEquals(1, actualStatement.postVisitReadVariable().size());
-        assertEquals("a", actualStatement.postVisitReadVariable().getFirst());
+        // read variables from condition
+        assertEquals(1, actualStatement.condition().readVariables().size());
+        assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
 
     @Test

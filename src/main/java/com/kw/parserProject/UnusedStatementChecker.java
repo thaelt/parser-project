@@ -1,7 +1,9 @@
 package com.kw.parserProject;
 
+import com.kw.parserProject.statements.Assignment;
 import com.kw.parserProject.statements.IfStatement;
 import com.kw.parserProject.statements.Statement;
+import com.kw.parserProject.statements.WhileStatement;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -26,41 +28,57 @@ public class UnusedStatementChecker {
     private void updateUnusedStatements(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Statement statement) {
         // let's start pre-traversal first
         // if variable not in recent assignments, nothing to do, if it's there - let's clear the flag
-        if (statement instanceof IfStatement x) {
-            handleIfs(unusedStatements, recentAssignments, x);
-            return;
+        switch (statement) {
+            case IfStatement ifStatement -> handleIfs(unusedStatements, recentAssignments, ifStatement);
+            case WhileStatement whileStatement ->
+                    handleWhileStatement(unusedStatements, recentAssignments, whileStatement);
+            case Assignment assignmentStatement ->
+                    handleAssignment(unusedStatements, recentAssignments, assignmentStatement);
+            case null -> throw new IllegalArgumentException("Null statement given for analysis");
+            default -> throw new IllegalArgumentException("Undefined statement type: " + statement);
         }
-        statement.readVariables().forEach(recentAssignments::remove);
+    }
 
-        // then, any substatements - handle recursively
-        statement.subStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentAssignments, subStatement));
+    private void handleAssignment(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Assignment statement) {
+        // remove read variables
+        statement.getExpression().readVariables().forEach(recentAssignments::remove);
 
-        // if variable is written to, mark it
-        String writeVariable = statement.writeVariable();
+        String writeVariable = statement.getWriteVariable();
         if (Objects.nonNull(writeVariable)) {
-            List<Statement> previousStatement = recentAssignments.computeIfAbsent(writeVariable, _ -> new ArrayList<>());
-            if (!previousStatement.isEmpty()) {
+            List<Statement> recentlyDefinedStatementsForVariable = recentAssignments.computeIfAbsent(writeVariable, _ -> new ArrayList<>());
+            if (!recentlyDefinedStatementsForVariable.isEmpty()) {
                 // value was written to, but never read up to this point, let's store it
-                unusedStatements.addAll(previousStatement);
-                previousStatement.clear();
+                unusedStatements.addAll(recentlyDefinedStatementsForVariable);
+                recentlyDefinedStatementsForVariable.clear();
             }
             // let's populate recent assignments with the freshest entry
-            previousStatement.add(statement);
+            recentlyDefinedStatementsForVariable.add(statement);
         }
+    }
 
-        // and post visit options like while loops
-        statement.postVisitReadVariable().forEach(recentAssignments::remove);
+    private void handleWhileStatement(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, WhileStatement statement) {
+        // condition - called when entering the loop
+        statement.condition().readVariables().forEach(recentAssignments::remove);
+
+        // iterate through statements inside, once is enough
+        statement.statements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentAssignments, subStatement));
+
+        // condition - called when evaluating before leaving the loop
+        statement.condition().readVariables().forEach(recentAssignments::remove);
     }
 
     private void handleIfs(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, IfStatement statement) {
-        statement.getCondition().readVariables().forEach(recentAssignments::remove);
+        // condition - called when entering the statement
+        statement.condition().readVariables().forEach(recentAssignments::remove);
 
         HashMap<String, List<Statement>> recentStateForFirstExecutionBranch = deepCopy(recentAssignments);
         HashMap<String, List<Statement>> recentStateForSecondExecutionBranch = deepCopy(recentAssignments);
 
-        statement.getIfClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForFirstExecutionBranch, subStatement));
-        statement.getElseClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForSecondExecutionBranch, subStatement));
+        // execute each if execution path separately, gather the most recent state for all variables
+        statement.ifClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForFirstExecutionBranch, subStatement));
+        statement.elseClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForSecondExecutionBranch, subStatement));
 
+        // merge the output of both, storing them without overriding each other
         BiConsumer<String, List<Statement>> collectUnusedVariables = (variable, values) -> recentAssignments.computeIfAbsent(variable, _ -> new ArrayList<>()).addAll(values);
         recentStateForFirstExecutionBranch.forEach(collectUnusedVariables);
         recentStateForSecondExecutionBranch.forEach(collectUnusedVariables);

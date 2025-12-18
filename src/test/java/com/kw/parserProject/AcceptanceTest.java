@@ -89,6 +89,37 @@ public class AcceptanceTest {
                         end
                         b = c + a
                         e = 2 + d + b
+                        """, "[d=2, e=2+d+b]"),
+                Arguments.of("""
+                        c = 5 + 2
+                        a = 4 < 3
+                        d = 2
+                        if c < 6
+                           d = 12
+                        else
+                           while c < 10
+                              c = c * 2 * ( d + a ) + 10
+                              d = 2
+                           end
+                           d = 5
+                        end
+                        b = c + a
+                        e = 2 + d + b
+                        """, "[d=2, d=2, e=2+d+b]"), // this one reports 'd=2' from different lines
+                Arguments.of("""
+                        c = 5 + 2
+                        a = 4 < 3
+                        d = 2
+                        if c < 6
+                           d = 12
+                        else
+                           while c < 10
+                              c = c * 2 * ( d + a ) + 10
+                           end
+                           d = 5
+                        end
+                        b = c + a
+                        e = 2 + d + b
                         """, "[d=2, e=2+d+b]")
         );
     }
