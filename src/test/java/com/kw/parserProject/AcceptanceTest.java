@@ -49,7 +49,7 @@ public class AcceptanceTest {
                           b = b + 1
                           x = 9
                           y = 10
-                        end""", "[y = 4, x = 9, y = 10, z = x]"),
+                        end""", "[y = 4, z = x, x = 9, y = 10]"),
                 Arguments.of("""
                         a = 1
                         b = 2
@@ -74,7 +74,7 @@ public class AcceptanceTest {
                            d = 5
                         end
                         b = c + a
-                        """, "[d = 2, b = c + a, d = 12, d = 5]"),
+                        """, "[d = 12, d = 2, d = 5, b = c + a]"),
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3

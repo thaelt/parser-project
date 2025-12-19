@@ -1,4 +1,4 @@
 package com.kw.parserProject.statements;
 
-public interface Statement {
+public interface Statement extends HasLineNumber {
 }

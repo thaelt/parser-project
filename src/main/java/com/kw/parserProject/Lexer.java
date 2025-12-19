@@ -2,7 +2,6 @@ package com.kw.parserProject;
 
 import com.kw.parserProject.tokens.*;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,10 +10,15 @@ public class Lexer {
     private static final List<String> RECOGNIZED_KEYWORDS = List.of("while", "else", "end", "if");
 
     public List<Token> extractTokens(String programCode) {
-        return programCode.lines()
-                .map(this::parseLine)
-                .flatMap(Collection::stream)
-                .toList();
+        List<String> lines = programCode.lines().toList();
+        List<Token> results = new LinkedList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            List<Token> tokens = parseLine(lines.get(i));
+            int lineNumber = i + 1;
+            tokens.forEach(token -> token.addLineNumber(lineNumber));
+            results.addAll(tokens);
+        }
+        return results;
     }
 
     List<Token> parseLine(String line) {
@@ -75,7 +79,7 @@ public class Lexer {
             tokens.add(new ClosingBracketToken());
             return startingPos + 1;
         }
-        throw new IllegalArgumentException("Cannot recognize token at position: "+startingPos);
+        throw new IllegalArgumentException("Cannot recognize token at position: " + startingPos);
     }
 
     private String readIdentifier(char[] input, int startingPos) {

@@ -46,13 +46,13 @@ public class Parser {
 
     private ReadResults<Integer, Statement> handleKeywordToken(List<Token> tokens, int startIndex, KeywordToken token) {
         return switch (token.data) {
-            case "if" -> handleIfStatement(tokens, startIndex);
-            case "while" -> handleWhileStatement(tokens, startIndex);
+            case "if" -> handleIfStatement(tokens, startIndex, token);
+            case "while" -> handleWhileStatement(tokens, startIndex, token);
             case null, default -> new ReadResults<>(-1, null);
         };
     }
 
-    private ReadResults<Integer, Statement> handleWhileStatement(List<Token> tokens, int startIndex) {
+    private ReadResults<Integer, Statement> handleWhileStatement(List<Token> tokens, int startIndex, KeywordToken token) {
         ReadResults<Integer, Expression> whileExpressionReadResults = readExpressionWithBrackets(tokens, startIndex + 1);
         assertTokenIsPresent(whileExpressionReadResults, "Expecting expression after 'while' keyword, did not encounter one");
 
@@ -65,11 +65,11 @@ public class Parser {
         Token endKeyword = tryReadingToken(tokens, endStatementIndex);
         assertTokenIsEndKeyword(endKeyword);
 
-        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value());
+        Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), token.lineNumber);
         return new ReadResults<>(endStatementIndex + 1, whileStatement);
     }
 
-    private ReadResults<Integer, Statement> handleIfStatement(List<Token> tokens, int startIndex) {
+    private ReadResults<Integer, Statement> handleIfStatement(List<Token> tokens, int startIndex, KeywordToken token) {
         ReadResults<Integer, Expression> tryReadingIfCondition = readExpressionWithBrackets(tokens, startIndex + 1);
         assertTokenIsPresent(tryReadingIfCondition, "Expecting condition in 'if' statement, did not encounter one");
 
@@ -93,7 +93,7 @@ public class Parser {
         Token endKeyword = tokens.get(potentialEndKeywordIndex);
         assertTokenIsEndKeyword(endKeyword);
 
-        Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements);
+        Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements, token.lineNumber);
         return new ReadResults<>(potentialEndKeywordIndex + 1, statement);
     }
 
@@ -104,7 +104,7 @@ public class Parser {
         ReadResults<Integer, Expression> assignmentReadResults = readExpressionWithBrackets(tokens, startIndex + 2);
         assertTokenIsPresent(assignmentReadResults, "Expecting expression to assign, did not encounter one");
 
-        Statement statement = new Assignment(variableToken.data, assignmentReadResults.value());
+        Statement statement = new Assignment(variableToken.data, assignmentReadResults.value(), variableToken.lineNumber);
         return new ReadResults<>(assignmentReadResults.nextIndex(), statement);
     }
 
