@@ -1,9 +1,6 @@
 package com.kw.parserProject;
 
-import com.kw.parserProject.statements.Assignment;
-import com.kw.parserProject.statements.IfStatement;
-import com.kw.parserProject.statements.Statement;
-import com.kw.parserProject.statements.WhileStatement;
+import com.kw.parserProject.statements.*;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -22,7 +19,7 @@ public class UnusedStatementChecker {
         return Stream.concat(
                 unusedOverwrittenAssignmentsFromStatements.stream(),
                 recentAssignments.values().stream().flatMap(Collection::stream)
-        ).toList();
+        ).sorted(Comparator.comparing(HasLineNumber::getLineNumber)).toList();
     }
 
     private void updateUnusedStatements(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Statement statement) {
