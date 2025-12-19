@@ -51,6 +51,52 @@ class ParserTest {
     }
 
     @Test
+    void shouldRecognizeAssignmentWithOperationAndNegativeNumber() {
+        // when
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                        new OperatorToken("-"), new ConstantToken("25"), new OperatorToken("+"), new VariableToken("x")))
+                .statements();
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+        assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
+        ValueExpression leftExpression = (ValueExpression) ((OperatorExpression) actualStatement.expression()).leftExpression();
+        assertEquals(-25, leftExpression.value());
+    }
+
+    @Test
+    void shouldRecognizeAssignmentWithOperationAndNegativeNumberCase2() {
+        // when
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                        new VariableToken("x"), new OperatorToken("*"), new OperatorToken("-"), new ConstantToken("25")))
+                .statements();
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+        assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
+        ValueExpression leftExpression = (ValueExpression) ((OperatorExpression) actualStatement.expression()).rightExpression();
+        assertEquals(-25, leftExpression.value());
+    }
+
+
+    @Test
+    void shouldThrowWithWrongOperatorWhenConstantIsExpected() {
+        // when
+        IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                new VariableToken("x"), new OperatorToken("+"), new OperatorToken("/"), new ConstantToken("25"))));
+        // then
+        assertEquals("Expecting an expression, did not encounter valid one", illegalArgumentException.getMessage());
+    }
+
+    @Test
     void shouldRecognizeAssignmentWithChainOperation() {
         // when
         // x = y - x * 2
