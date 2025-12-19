@@ -114,8 +114,20 @@ public class Parser {
             case OpeningBracketToken _ -> handleOpeningBracket(tokens, startIndex);
             case VariableToken variableToken -> chainIfPossible(tokens, startIndex, wrapInExpression(variableToken));
             case ConstantToken constantToken -> chainIfPossible(tokens, startIndex, wrapInExpression(constantToken));
+            case OperatorToken operatorToken -> handleOperatorToken(tokens, startIndex, operatorToken);
             case null, default -> new ReadResults<>(-1, null);
         };
+    }
+
+    private ReadResults<Integer, Expression> handleOperatorToken(List<Token> tokens, int startIndex, OperatorToken token) {
+        if (!"-".equals(token.data)) {
+            return new ReadResults<>(-1, null);
+        }
+
+        Token constantToken = tryReadingToken(tokens, startIndex + 1);
+        ConstantToken constantToNegate = assertTokenIsOfType(constantToken, ConstantToken.class);
+        ValueExpression valueExpression = new ValueExpression(-Integer.parseInt(constantToNegate.data));
+        return chainIfPossible(tokens, startIndex + 1, valueExpression);
     }
 
     private ReadResults<Integer, Expression> handleOpeningBracket(List<Token> tokens, int startIndex) {
@@ -142,7 +154,7 @@ public class Parser {
 
     private ReadResults<Integer, Expression> chainExpressions(List<Token> tokens, Expression expression, int potentialLastTokenIndex, Token nextToken) {
         ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, potentialLastTokenIndex + 1);
-        assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter one");
+        assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter valid one");
 
         // we're collecting chained assignments from right to left, due to recursion call.
         // it is not a problem with basic unused variable usage analysis as order of operation is not important for it.
@@ -188,9 +200,11 @@ public class Parser {
         }
     }
 
-    private static void assertTokenIsOfType(Token tokenToCheck, Class<? extends Token> tokenClass) {
+    private static <T extends Token> T assertTokenIsOfType(Token tokenToCheck, Class<T> tokenClass) {
         if (!tokenClass.isInstance(tokenToCheck)) {
             throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + (tokenToCheck == null ? "null" : tokenToCheck.getClass().toString()));
+        } else {
+            return tokenClass.cast(tokenToCheck);
         }
     }
 

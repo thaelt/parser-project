@@ -37,6 +37,24 @@ class LexerTest {
     }
 
     @Test
+    void shouldHandleNegativeNumberAsTwoTokens() {
+        // might be either hard or impossible to detect it at lexer level
+        // when
+        List<Token> tokens = lexer.parseLine("-2351");
+
+        // then
+        assertEquals(2, tokens.size());
+        Token signToken = tokens.getFirst();
+        Token numberToken = tokens.getLast();
+
+        assertInstanceOf(OperatorToken.class, signToken);
+        assertEquals("-", signToken.data);
+
+        assertInstanceOf(ConstantToken.class, numberToken);
+        assertEquals("2351", numberToken.data);
+    }
+
+    @Test
     void shouldIgnoreWhitespacesAndLineBreaks() {
         // when
         // we're likely not encountering newlines here, but we might as well check if we skip them
@@ -84,8 +102,6 @@ class LexerTest {
                 Arguments.of("5", ConstantToken.class, "5"),
                 Arguments.of("123", ConstantToken.class, "123"),
 //                Arguments.of("123.21", ConstantToken.class, "123.21"),
-//                Arguments.of("-923", ConstantToken.class, "923")
-//                Arguments.of("-241.55", ConstantToken.class, "-241.55")
                 Arguments.of("0", ConstantToken.class, "0"),
                 Arguments.of("(", OpeningBracketToken.class, "("),
                 Arguments.of(")", ClosingBracketToken.class, ")"),

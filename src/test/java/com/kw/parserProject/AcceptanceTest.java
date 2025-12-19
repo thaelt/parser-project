@@ -55,6 +55,10 @@ public class AcceptanceTest {
                         b = 2
                         """, "[a = 1, b = 2]"),
                 Arguments.of("""
+                        a = -21
+                        b = 2
+                        """, "[a = -21, b = 2]"),
+                Arguments.of("""
                         a = 1
                         if a < 5
                            a = a + 1
@@ -91,7 +95,7 @@ public class AcceptanceTest {
                         e = 2 + (d + b)
                         """, "[d = 2, e = 2 + (d + b)]"),
                 Arguments.of("""
-                        c = 5 + 2
+                        c = 5 + (- 2 + 5)
                         a = 4 < 3
                         d = 2
                         if c < 6
