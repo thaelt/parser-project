@@ -4,9 +4,4 @@ public class AssignmentToken extends Token {
     public AssignmentToken() {
         super("=");
     }
-
-    @Override
-    public String toString() {
-        return data;
-    }
 }

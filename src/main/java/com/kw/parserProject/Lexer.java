@@ -98,7 +98,6 @@ public class Lexer {
     }
 
     private int readReservedKeyword(char[] input, int startingPos, List<Token> tokens) {
-        if (startingPos >= input.length) return -1;
         for (String recognizedKeyword : RECOGNIZED_KEYWORDS) {
             int keywordLength = recognizedKeyword.length();
 

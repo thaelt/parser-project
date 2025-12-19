@@ -7,7 +7,6 @@ import com.kw.parserProject.utility.ReadResults;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class Parser {
 
@@ -105,7 +104,7 @@ public class Parser {
         ReadResults<Integer, Expression> assignmentReadResults = readExpressionWithBrackets(tokens, startIndex + 2);
         assertTokenIsPresent(assignmentReadResults, "Expecting expression to assign, did not encounter one");
 
-        Statement statement = new Assignment(variableToken.data, assignmentReadResults.value(), tokens.subList(startIndex, assignmentReadResults.nextIndex()).stream().map(Token::toString).collect(Collectors.joining()));
+        Statement statement = new Assignment(variableToken.data, assignmentReadResults.value());
         return new ReadResults<>(assignmentReadResults.nextIndex(), statement);
     }
 
@@ -113,10 +112,8 @@ public class Parser {
         Token token = tryReadingToken(tokens, startIndex);
         return switch (token) {
             case OpeningBracketToken _ -> handleOpeningBracket(tokens, startIndex);
-            case VariableToken variableToken ->
-                    chainIfPossible(tokens, startIndex, wrapInExpression(variableToken));
-            case ConstantToken constantToken ->
-                    chainIfPossible(tokens, startIndex, wrapInExpression(constantToken));
+            case VariableToken variableToken -> chainIfPossible(tokens, startIndex, wrapInExpression(variableToken));
+            case ConstantToken constantToken -> chainIfPossible(tokens, startIndex, wrapInExpression(constantToken));
             case null, default -> new ReadResults<>(-1, null);
         };
     }
@@ -128,7 +125,7 @@ public class Parser {
         Token closingBracket = tokens.get(expressionReadResults.nextIndex());
         assertTokenIsOfType(closingBracket, ClosingBracketToken.class);
 
-        Expression expression = new Expression(expressionReadResults.value());
+        Expression expression = new BracketExpression(expressionReadResults.value());
 
         return chainIfPossible(tokens, expressionReadResults.nextIndex(), expression);
     }
@@ -153,29 +150,29 @@ public class Parser {
         // it is not perfect (should use left predecessor rule, not right child rule), but works
         String operator = nextToken.data;
         Expression rightSideExpression = endIndex.value();
-        if (("*".equals(operator) || "/".equals(operator)) && rightSideExpression.isOperatorExpression()) {
-            Expression rotatedExpression = rotateExpressions(expression, operator, rightSideExpression);
+        if (("*".equals(operator) || "/".equals(operator)) && rightSideExpression instanceof OperatorExpression operatorExpression) {
+            Expression rotatedExpression = rotateExpressions(expression, operator, operatorExpression);
             return new ReadResults<>(endIndex.nextIndex(), rotatedExpression);
         }
 
-        Expression chainedExpression = new Expression(expression, operator, rightSideExpression);
+        Expression chainedExpression = new OperatorExpression(expression, operator, rightSideExpression);
         return new ReadResults<>(endIndex.nextIndex(), chainedExpression);
     }
 
-    private static Expression rotateExpressions(Expression leftSideExpression, String operator, Expression rightSideExpression) {
-        Expression newLeftExpression = new Expression(leftSideExpression, operator, rightSideExpression.getLeftExpression());
-        String newTopOperator = rightSideExpression.getOperator();
-        Expression newRightExpression = rightSideExpression.getRightExpression();
+    private static Expression rotateExpressions(Expression leftSideExpression, String operator, OperatorExpression rightSideExpression) {
+        Expression newLeftExpression = new OperatorExpression(leftSideExpression, operator, rightSideExpression.leftExpression());
+        String newTopOperator = rightSideExpression.operator();
+        Expression newRightExpression = rightSideExpression.rightExpression();
 
-        return new Expression(newLeftExpression, newTopOperator, newRightExpression);
+        return new OperatorExpression(newLeftExpression, newTopOperator, newRightExpression);
     }
 
     private Expression wrapInExpression(VariableToken variableToken) {
-        return new Expression(variableToken.data);
+        return new VariableExpression(variableToken.data);
     }
 
     private Expression wrapInExpression(ConstantToken constantToken) {
-        return new Expression(Integer.parseInt(constantToken.data));
+        return new ValueExpression(Integer.parseInt(constantToken.data));
     }
 
     private Token tryReadingToken(List<Token> tokens, int index) {

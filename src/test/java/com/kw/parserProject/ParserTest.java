@@ -29,8 +29,8 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
-        assertEquals(0, actualStatement.getExpression().readVariables().size());
+        assertEquals("x", actualStatement.writeVariable());
+        assertEquals(0, actualStatement.expression().readVariables().size());
     }
 
     @Test
@@ -44,8 +44,8 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
-        assertIterableEquals(List.of("x"), actualStatement.getExpression().readVariables());
+        assertEquals("x", actualStatement.writeVariable());
+        assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -60,22 +60,20 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
         // y - rightExpression
-        Expression topTierExpression = actualStatement.getExpression();
-        assertOperator(topTierExpression, "-");
-        assertVariableExpression(topTierExpression.getLeftExpression(), "y");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "-");
+        assertVariableExpression(topTierExpression.leftExpression(), "y");
 
         // rightExpression -> x * 2
-        Expression rightExpression = topTierExpression.getRightExpression();
-        assertOperator(rightExpression, "*");
-        assertVariableExpression(rightExpression.getLeftExpression(), "x");
-        assertValueExpression(rightExpression.getRightExpression(), 2);
+        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), "*");
+        assertVariableExpression(rightExpression.leftExpression(), "x");
+        assertValueExpression(rightExpression.rightExpression(), 2);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -91,21 +89,18 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
         // leftExpression - 2
-        Expression topTierExpression = actualStatement.getExpression();
-        assertOperator(topTierExpression, "-");
-
-        assertVariableExpression(topTierExpression.getRightExpression(), "y");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "-");
+        assertVariableExpression(topTierExpression.rightExpression(), "y");
 
         // leftExpression -> x * 2
-        Expression leftExpression = topTierExpression.getLeftExpression();
-        assertOperator(leftExpression, "*");
-        assertVariableExpression(leftExpression.getLeftExpression(), "x");
-        assertValueExpression(leftExpression.getRightExpression(), 2);
+        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        assertVariableExpression(leftExpression.leftExpression(), "x");
+        assertValueExpression(leftExpression.rightExpression(), 2);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -122,22 +117,20 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
-        Expression topTierExpression = actualStatement.getExpression();
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "*");
         // x * rightExpression
-        assertOperator(topTierExpression, "*");
-        assertVariableExpression(topTierExpression.getLeftExpression(), "x");
-        assertTrue(topTierExpression.getRightExpression().isBracketExpression());
+        assertVariableExpression(topTierExpression.leftExpression(), "x");
+        BracketExpression bracketExpression = assertBracketExpression(topTierExpression.rightExpression());
 
         // rightExpression -> expressionInBracket -> ( 2 - y )
-        Expression expressionInBrackets = topTierExpression.getRightExpression().getExpressionInBrackets();
+        OperatorExpression expressionInBrackets = assertOperator(bracketExpression.expressionInBrackets(), "-");
         // 2 - y
-        assertOperator(expressionInBrackets, "-");
-        assertValueExpression(expressionInBrackets.getLeftExpression(), 2);
-        assertVariableExpression(expressionInBrackets.getRightExpression(), "y");
+        assertValueExpression(expressionInBrackets.leftExpression(), 2);
+        assertVariableExpression(expressionInBrackets.rightExpression(), "y");
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -155,27 +148,24 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
-        Expression topTierExpression = actualStatement.getExpression();
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "+");
         // leftExpression * rightExpression
-        assertOperator(topTierExpression, "+");
 
         // leftExpression -> 2 * x
-        Expression leftExpression = topTierExpression.getLeftExpression();
-        assertOperator(leftExpression, "*");
+        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), "*");
 
-        assertValueExpression(leftExpression.getLeftExpression(), 2);
-        assertVariableExpression(leftExpression.getRightExpression(), "x");
+        assertValueExpression(leftExpression.leftExpression(), 2);
+        assertVariableExpression(leftExpression.rightExpression(), "x");
 
         // rightExpression -> y / 5
-        Expression rightExpression = topTierExpression.getRightExpression();
-        assertOperator(rightExpression, "/");
+        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), "/");
 
-        assertVariableExpression(rightExpression.getLeftExpression(), "y");
-        assertValueExpression(rightExpression.getRightExpression(), 5);
+        assertVariableExpression(rightExpression.leftExpression(), "y");
+        assertValueExpression(rightExpression.rightExpression(), 5);
 
-        assertIterableEquals(List.of("x", "y"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -194,27 +184,23 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
-        Expression topTierExpression = actualStatement.getExpression();
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "/");
         // leftExpression / a
-        assertOperator(topTierExpression, "/");
-
-        Expression rightExpression = topTierExpression.getRightExpression();
+        Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
         // leftExpression -> x * y * z
         // x -> left, y * z -> right, due to rotation
-        Expression secondLevelLeftExpression = topTierExpression.getLeftExpression();
-        assertOperator(secondLevelLeftExpression, "*");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
 
-        assertVariableExpression(secondLevelLeftExpression.getLeftExpression(), "x");
-        Expression thirdTierExpression = secondLevelLeftExpression.getRightExpression();
-        assertOperator(thirdTierExpression, "*");
-        assertVariableExpression(thirdTierExpression.getLeftExpression(), "y");
-        assertVariableExpression(thirdTierExpression.getRightExpression(), "z");
+        assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
+        OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.rightExpression(), "*");
+        assertVariableExpression(thirdTierExpression.leftExpression(), "y");
+        assertVariableExpression(thirdTierExpression.rightExpression(), "z");
 
-        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.expression().readVariables());
     }
 
     @Test
@@ -232,29 +218,26 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
+        assertEquals("x", actualStatement.writeVariable());
 
-        Expression topTierExpression = actualStatement.getExpression();
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "/");
         // leftExpression / a
-        assertOperator(topTierExpression, "/");
 
-        Expression rightExpression = topTierExpression.getRightExpression();
+        Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
         // x * ( y + z )
-        Expression secondLevelLeftExpression = topTierExpression.getLeftExpression();
-        assertOperator(secondLevelLeftExpression, "*");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
 
-        assertVariableExpression(secondLevelLeftExpression.getLeftExpression(), "x");
-        Expression thirdTierExpression = secondLevelLeftExpression.getRightExpression();
+        assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
+        BracketExpression thirdTierExpression = assertBracketExpression(secondLevelLeftExpression.rightExpression());
 
-        assertTrue(thirdTierExpression.isBracketExpression());
-        Expression expressionInBracket = thirdTierExpression.getExpressionInBrackets();
+        OperatorExpression expressionInBracket = assertOperator(thirdTierExpression.expressionInBrackets(), "+");
 
-        assertVariableExpression(expressionInBracket.getLeftExpression(), "y");
-        assertVariableExpression(expressionInBracket.getRightExpression(), "z");
+        assertVariableExpression(expressionInBracket.leftExpression(), "y");
+        assertVariableExpression(expressionInBracket.rightExpression(), "z");
 
-        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.getExpression().readVariables());
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.expression().readVariables());
     }
 
 
@@ -268,10 +251,10 @@ class ParserTest {
         assertInstanceOf(Assignment.class, statements.getFirst());
 
         Assignment actualStatement = (Assignment) statements.getFirst();
-        assertEquals("x", actualStatement.getWriteVariable());
-        assertEquals(1, actualStatement.getExpression().readVariables().size());
+        assertEquals("x", actualStatement.writeVariable());
+        assertEquals(1, actualStatement.expression().readVariables().size());
 
-        assertEquals("y", actualStatement.getExpression().readVariables().getFirst());
+        assertEquals("y", actualStatement.expression().readVariables().getFirst());
     }
 
     @Test
@@ -411,19 +394,26 @@ class ParserTest {
         ));
     }
 
-    private static void assertOperator(Expression operatorExpression, String expected) {
-        assertTrue(operatorExpression.isOperatorExpression());
-        assertEquals(expected, operatorExpression.getOperator());
+    private static OperatorExpression assertOperator(Expression operatorExpression, String expected) {
+        assertInstanceOf(OperatorExpression.class, operatorExpression);
+        OperatorExpression expression = (OperatorExpression) operatorExpression;
+        assertEquals(expected, expression.operator());
+        return expression;
+    }
+
+    private static BracketExpression assertBracketExpression(Expression bracketExpression) {
+        assertInstanceOf(BracketExpression.class, bracketExpression);
+        return (BracketExpression) bracketExpression;
     }
 
     private static void assertValueExpression(Expression valueExpression, int expected) {
-        assertTrue(valueExpression.isValueExpression());
-        assertEquals(expected, valueExpression.getValue());
+        assertInstanceOf(ValueExpression.class, valueExpression);
+        assertEquals(expected, ((ValueExpression) valueExpression).value());
     }
 
     private static void assertVariableExpression(Expression variableExpression, String expected) {
-        assertTrue(variableExpression.isVariableExpression());
-        assertEquals(expected, variableExpression.getVariable());
+        assertInstanceOf(VariableExpression.class, variableExpression);
+        assertEquals(expected, ((VariableExpression) variableExpression).variable());
     }
 
 }

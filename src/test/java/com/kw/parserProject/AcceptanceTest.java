@@ -49,18 +49,18 @@ public class AcceptanceTest {
                           b = b + 1
                           x = 9
                           y = 10
-                        end""", "[y=4, x=9, y=10, z=x]"),
+                        end""", "[y = 4, x = 9, y = 10, z = x]"),
                 Arguments.of("""
                         a = 1
                         b = 2
-                        """, "[a=1, b=2]"),
+                        """, "[a = 1, b = 2]"),
                 Arguments.of("""
                         a = 1
                         if a < 5
                            a = a + 1
                         end
                         b = a
-                        """, "[b=a]"),
+                        """, "[b = a]"),
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
@@ -74,7 +74,7 @@ public class AcceptanceTest {
                            d = 5
                         end
                         b = c + a
-                        """, "[d=2, b=c+a, d=12, d=5]"),
+                        """, "[d = 2, b = c + a, d = 12, d = 5]"),
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
@@ -88,8 +88,8 @@ public class AcceptanceTest {
                            d = 5
                         end
                         b = c + a
-                        e = 2 + d + b
-                        """, "[d=2, e=2+d+b]"),
+                        e = 2 + (d + b)
+                        """, "[d = 2, e = 2 + (d + b)]"),
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
@@ -105,7 +105,7 @@ public class AcceptanceTest {
                         end
                         b = c + a
                         e = 2 + d + b
-                        """, "[d=2, d=2, e=2+d+b]"), // this one reports 'd=2' from different lines
+                        """, "[d = 2, d = 2, e = 2 + d + b]"), // this one reports 'd=2' from different lines
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
@@ -120,7 +120,7 @@ public class AcceptanceTest {
                         end
                         b = c + a
                         e = 2 + d + b
-                        """, "[d=2, e=2+d+b]")
+                        """, "[d = 2, e = 2 + d + b]")
         );
     }
 

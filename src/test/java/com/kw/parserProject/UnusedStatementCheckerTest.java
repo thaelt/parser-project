@@ -13,12 +13,12 @@ class UnusedStatementCheckerTest {
     UnusedStatementChecker unusedStatementChecker;
 
     // commonly defined statements/conditions:
-    Assignment xIsFive = new Assignment("x", new Expression(5), "x = 5");
-    Assignment xIsSix = new Assignment("x", new Expression(6), "x = 6");
-    Assignment yIsXPlusTwo = new Assignment("y", new Expression(new Expression("x"), "+", new Expression(2)), "y = x + 2");
-    Assignment zIsXPlusThree = new Assignment("z", new Expression(new Expression("x"), "+", new Expression(3)), "z = x + 3");
-    Expression xLessThanFive = new Expression(new Expression("x"), "<", new Expression(5));
-    Expression zLessThanFive = new Expression(new Expression("z"), "<", new Expression(5));
+    Assignment xIsFive = new Assignment("x", new ValueExpression(5));
+    Assignment xIsSix = new Assignment("x", new ValueExpression(6));
+    Assignment yIsXPlusTwo = new Assignment("y", new OperatorExpression(new VariableExpression("x"), "+", new ValueExpression(2)));
+    Assignment zIsXPlusThree = new Assignment("z", new OperatorExpression(new VariableExpression("x"), "+", new ValueExpression(3)));
+    Expression xLessThanFive = new OperatorExpression(new VariableExpression("x"), "<", new ValueExpression(5));
+    Expression zLessThanFive = new OperatorExpression(new VariableExpression("z"), "<", new ValueExpression(5));
 
     @BeforeEach
     void setUp() {

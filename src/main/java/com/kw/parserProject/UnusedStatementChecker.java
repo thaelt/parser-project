@@ -41,19 +41,17 @@ public class UnusedStatementChecker {
 
     private void handleAssignment(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Assignment statement) {
         // remove read variables
-        statement.getExpression().readVariables().forEach(recentAssignments::remove);
+        statement.expression().readVariables().forEach(recentAssignments::remove);
 
-        String writeVariable = statement.getWriteVariable();
-        if (Objects.nonNull(writeVariable)) {
-            List<Statement> recentlyDefinedStatementsForVariable = recentAssignments.computeIfAbsent(writeVariable, _ -> new ArrayList<>());
-            if (!recentlyDefinedStatementsForVariable.isEmpty()) {
-                // value was written to, but never read up to this point, let's store it
-                unusedStatements.addAll(recentlyDefinedStatementsForVariable);
-                recentlyDefinedStatementsForVariable.clear();
-            }
-            // let's populate recent assignments with the freshest entry
-            recentlyDefinedStatementsForVariable.add(statement);
+        String writeVariable = statement.writeVariable();
+        List<Statement> recentlyDefinedStatementsForVariable = recentAssignments.computeIfAbsent(writeVariable, _ -> new ArrayList<>());
+        if (!recentlyDefinedStatementsForVariable.isEmpty()) {
+            // value was written to, but never read up to this point, let's store it
+            unusedStatements.addAll(recentlyDefinedStatementsForVariable);
+            recentlyDefinedStatementsForVariable.clear();
         }
+        // let's populate recent assignments with the freshest entry
+        recentlyDefinedStatementsForVariable.add(statement);
     }
 
     private void handleWhileStatement(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, WhileStatement statement) {
