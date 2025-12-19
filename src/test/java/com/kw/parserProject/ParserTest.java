@@ -147,7 +147,6 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignmentWithChainOperationWithOperatorBalancing() {
         // when
-        // operator balancing not yet implemented fully
         // x = x * 2 - y
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
@@ -177,7 +176,6 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignmentWithChainOperationAndBracketsWithOperatorBalancing() {
         // when
-        // operator balancing not yet implemented fully
         // x = x * (2 - y)
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
@@ -209,7 +207,6 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignmentWithMultipleMultiplicationsWithOperatorBalancing() {
         // when
-        // operator balancing not yet implemented fully
         // x = 2 * x + y / 5
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new ConstantToken("2"),
@@ -245,7 +242,6 @@ class ParserTest {
     @Test
     void shouldHandleMultipleMultiplicationsWithOperatorBalancing() {
         // when
-        // operator balancing not yet implemented fully
         // x = x * y * z / a
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
@@ -268,11 +264,74 @@ class ParserTest {
         // leftExpression -> x * y * z
         // x -> left, y * z -> right, due to rotation
         OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        assertVariableExpression(secondLevelLeftExpression.rightExpression(), "z");
+        OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.leftExpression(), "*");
+        assertVariableExpression(thirdTierExpression.leftExpression(), "x");
+        assertVariableExpression(thirdTierExpression.rightExpression(), "y");
 
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.expression().readVariables());
+    }
+
+    @Test
+    void shouldHandleOperatorBalancingWithComparisonOperators() {
+        // when
+        // x = x < y * z > a
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
+                        new OperatorToken("<"), new VariableToken("y"), new OperatorToken("*"),
+                        new VariableToken("z"), new OperatorToken(">"), new VariableToken("a")))
+                .statements();
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "*");
+
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "<");
         assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
-        OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.rightExpression(), "*");
-        assertVariableExpression(thirdTierExpression.leftExpression(), "y");
-        assertVariableExpression(thirdTierExpression.rightExpression(), "z");
+        assertVariableExpression(secondLevelLeftExpression.rightExpression(), "y");
+
+        OperatorExpression secondLevelRightExpression = assertOperator(topTierExpression.rightExpression(), ">");
+        assertVariableExpression(secondLevelRightExpression.leftExpression(), "z");
+        assertVariableExpression(secondLevelRightExpression.rightExpression(), "a");
+
+        assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.expression().readVariables());
+    }
+
+    @Test
+    void shouldHandleOperatorBalancingWithComparisonOperatorsCase2() {
+        // when
+        // x = x < y * z > a + 1
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
+                        new OperatorToken("<"), new VariableToken("y"), new OperatorToken("*"),
+                        new VariableToken("z"), new OperatorToken(">"), new VariableToken("a"),
+                        new OperatorToken("+"), new ConstantToken("1")))
+                .statements();
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "+");
+        assertValueExpression(topTierExpression.rightExpression(), 1f);
+
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        OperatorExpression xLessThanY = assertOperator(secondLevelLeftExpression.leftExpression(), "<");
+        OperatorExpression zGreaterThanA = assertOperator(secondLevelLeftExpression.rightExpression(), ">");
+
+        assertVariableExpression(xLessThanY.leftExpression(), "x");
+        assertVariableExpression(xLessThanY.rightExpression(), "y");
+
+        assertVariableExpression(zGreaterThanA.leftExpression(), "z");
+        assertVariableExpression(zGreaterThanA.rightExpression(), "a");
 
         assertIterableEquals(List.of("a", "x", "y", "z"), actualStatement.expression().readVariables());
     }
@@ -280,7 +339,6 @@ class ParserTest {
     @Test
     void shouldHandleBracketsAndMultipleOperatorsWithOperatorBalancing() {
         // when
-        // operator balancing not yet implemented fully
         // x = x * ( y + z ) / a
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(),

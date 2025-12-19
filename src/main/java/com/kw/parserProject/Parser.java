@@ -7,6 +7,7 @@ import com.kw.parserProject.utility.ReadResults;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Stack;
 
 public class Parser {
 
@@ -158,11 +159,10 @@ public class Parser {
 
         // we're collecting chained assignments from right to left, due to recursion call.
         // it is not a problem with basic unused variable usage analysis as order of operation is not important for it.
-        // rotating helps to fix some discrepancies with operation order.
-        // it is not perfect (should use left predecessor rule, not right child rule), but works
+        // however let's try fixing operator order
         String operator = nextToken.data;
         Expression rightSideExpression = endIndex.value();
-        if (("*".equals(operator) || "/".equals(operator)) && rightSideExpression instanceof OperatorExpression operatorExpression) {
+        if (rightSideExpression instanceof OperatorExpression operatorExpression) {
             Expression rotatedExpression = rotateExpressions(expression, operator, operatorExpression);
             return new ReadResults<>(endIndex.nextIndex(), rotatedExpression);
         }
@@ -172,11 +172,43 @@ public class Parser {
     }
 
     private static Expression rotateExpressions(Expression leftSideExpression, String operator, OperatorExpression rightSideExpression) {
-        Expression newLeftExpression = new OperatorExpression(leftSideExpression, operator, rightSideExpression.leftExpression());
-        String newTopOperator = rightSideExpression.operator();
-        Expression newRightExpression = rightSideExpression.rightExpression();
+        // logic might be slightly easier if tree was mutable...
+        // push operator and left input argument as deep into the operator tree as possible and connect it with rightSideExpression's left predecessor
+        // this will transform "left * (right + right2)" into "(left * right) + right2"
+        // and should respect operator precedence and multiple chain levels (hopefully)
+        Stack<Expression> rightExpressions = new Stack<>();
+        Stack<String> operators = new Stack<>();
 
-        return new OperatorExpression(newLeftExpression, newTopOperator, newRightExpression);
+        Expression leftPointer = rightSideExpression;
+
+        while (leftPointer instanceof OperatorExpression(
+                Expression leftExpression, String rightOperator, Expression rightExpression
+        ) && operatorHasHigherPrecedence(operator, rightOperator)) {
+            // go deeper: put operator on stack, put right child expression on stack
+            operators.push(rightOperator);
+            rightExpressions.push(rightExpression);
+            // move pointers
+            leftPointer = leftExpression;
+        }
+
+        // create new leaf node - attach left part of expression to the operator
+        Expression childRightExpression = leftPointer;
+        leftPointer = new OperatorExpression(leftSideExpression, operator, childRightExpression);
+
+        // reconstruct right part of the tree
+        while (!rightExpressions.isEmpty()) {
+            Expression newRightExpression = rightExpressions.pop();
+            String newOperator = operators.pop();
+            Expression newLeftExpression = leftPointer;
+
+            leftPointer = new OperatorExpression(newLeftExpression, newOperator, newRightExpression);
+        }
+        return leftPointer;
+    }
+
+    private static boolean operatorHasHigherPrecedence(String left, String right) {
+        if ("<".equals(left) || ">".equals(left)) return true;
+        return ("*".equals(left) || "/".equals(left)) && !("<".equals(right) || ">".equals(right));
     }
 
     private Expression wrapInExpression(VariableToken variableToken) {
