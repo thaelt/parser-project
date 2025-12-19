@@ -36,6 +36,20 @@ class LexerTest {
         assertEquals(expectedData, actualToken.data);
     }
 
+    @ParameterizedTest
+    @MethodSource("operatorTokenTestCases")
+    void shouldRecognizeBasicTokens(String input, Operator expectedOperator) {
+        // when
+        List<Token> tokens = lexer.parseLine(input);
+
+        // then
+        assertEquals(1, tokens.size());
+        Token actualToken = tokens.getFirst();
+
+        OperatorToken operatorToken = assertInstanceOf(OperatorToken.class, actualToken);
+        assertEquals(expectedOperator, operatorToken.getOperator());
+    }
+
     @Test
     void shouldHandleNegativeNumberAsTwoTokens() {
         // might be either hard or impossible to detect it at lexer level
@@ -47,8 +61,8 @@ class LexerTest {
         Token signToken = tokens.getFirst();
         Token numberToken = tokens.getLast();
 
-        assertInstanceOf(OperatorToken.class, signToken);
-        assertEquals("-", signToken.data);
+        OperatorToken operatorToken = assertInstanceOf(OperatorToken.class, signToken);
+        assertEquals(Operator.MINUS, operatorToken.getOperator());
 
         assertInstanceOf(ConstantToken.class, numberToken);
         assertEquals("2351", numberToken.data);
@@ -123,12 +137,6 @@ class LexerTest {
                 Arguments.of("y", VariableToken.class, "y"),
                 Arguments.of("a", VariableToken.class, "a"),
                 Arguments.of("=", AssignmentToken.class, "="),
-                Arguments.of("+", OperatorToken.class, "+"),
-                Arguments.of("-", OperatorToken.class, "-"),
-                Arguments.of("/", OperatorToken.class, "/"),
-                Arguments.of("*", OperatorToken.class, "*"),
-                Arguments.of("<", OperatorToken.class, "<"),
-                Arguments.of(">", OperatorToken.class, ">"),
                 Arguments.of("5", ConstantToken.class, "5"),
                 Arguments.of("123", ConstantToken.class, "123"),
                 Arguments.of("123.21", ConstantToken.class, "123.21"),
@@ -139,6 +147,17 @@ class LexerTest {
                 Arguments.of("else", KeywordToken.class, "else"),
                 Arguments.of("while", KeywordToken.class, "while"),
                 Arguments.of("end", KeywordToken.class, "end")
+        );
+    }
+
+    public static Stream<Arguments> operatorTokenTestCases() {
+        return Stream.of(
+                Arguments.of("+", Operator.PLUS),
+                Arguments.of("-", Operator.MINUS),
+                Arguments.of("/", Operator.DIVIDE),
+                Arguments.of("*", Operator.MULTIPLY),
+                Arguments.of("<", Operator.LESS_THAN),
+                Arguments.of(">", Operator.GREATER_THAN)
         );
     }
 

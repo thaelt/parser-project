@@ -1,10 +1,12 @@
 package com.kw.parserProject.statements;
 
+import com.kw.parserProject.Operator;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-public record OperatorExpression(Expression leftExpression, String operator,
+public record OperatorExpression(Expression leftExpression, Operator operator,
                                  Expression rightExpression) implements Expression {
 
     @Override
@@ -17,7 +19,7 @@ public record OperatorExpression(Expression leftExpression, String operator,
 
     @Override
     public String print() {
-        return leftExpression.print() + " " + operator + " " + rightExpression.print();
+        return leftExpression.print() + " " + operator.print() + " " + rightExpression.print();
     }
 
 }

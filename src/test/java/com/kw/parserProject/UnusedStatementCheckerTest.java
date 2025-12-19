@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.kw.parserProject.Operator.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class UnusedStatementCheckerTest {
@@ -15,10 +16,10 @@ class UnusedStatementCheckerTest {
     // commonly defined statements/conditions:
     Assignment xIsFive = new Assignment("x", new ValueExpression("5"));
     Assignment xIsSix = new Assignment("x", new ValueExpression("6"));
-    Assignment yIsXPlusTwo = new Assignment("y", new OperatorExpression(new VariableExpression("x"), "+", new ValueExpression("2")));
-    Assignment zIsXPlusThree = new Assignment("z", new OperatorExpression(new VariableExpression("x"), "+", new ValueExpression("3")));
-    Expression xLessThanFive = new OperatorExpression(new VariableExpression("x"), "<", new ValueExpression("5"));
-    Expression zLessThanFive = new OperatorExpression(new VariableExpression("z"), "<", new ValueExpression("5"));
+    Assignment yIsXPlusTwo = new Assignment("y", new OperatorExpression(new VariableExpression("x"), PLUS, new ValueExpression("2")));
+    Assignment zIsXPlusThree = new Assignment("z", new OperatorExpression(new VariableExpression("x"), PLUS, new ValueExpression("3")));
+    Expression xLessThanFive = new OperatorExpression(new VariableExpression("x"), LESS_THAN, new ValueExpression("5"));
+    Expression zLessThanFive = new OperatorExpression(new VariableExpression("z"), LESS_THAN, new ValueExpression("5"));
 
     @BeforeEach
     void setUp() {

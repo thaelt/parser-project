@@ -11,6 +11,9 @@ import java.util.Stack;
 
 public class Parser {
 
+    public static final ReadResults<Integer, Expression> EXPRESSION_NOT_FOUND = new ReadResults<>(-1, null);
+    public static final ReadResults<Integer, Statement> STATEMENT_NOT_FOUND = new ReadResults<>(-1, null);
+
     public Program parse(List<Token> tokens) {
         ReadResults<Integer, List<Statement>> program = readStatementList(new ArrayList<>(tokens), 0);
         if (program.nextIndex() != tokens.size()) {
@@ -22,26 +25,27 @@ public class Parser {
 
     private ReadResults<Integer, List<Statement>> readStatementList(List<Token> tokens, int startIndex) {
         List<Statement> statements = new ArrayList<>();
-        ReadResults<Integer, Statement> resultIndex = readConditionStatement(tokens, startIndex);
-        if (resultIndex.nextIndex() == -1) {
-            throw new IllegalArgumentException("Expecting at least one statement");
-        }
+
         int previousSuccessIndex = -1;
-        while (resultIndex.nextIndex() != -1) {
-            previousSuccessIndex = resultIndex.nextIndex();
-            statements.add(resultIndex.value());
-            resultIndex = readConditionStatement(tokens, resultIndex.nextIndex());
+        var res = readStatement(tokens, startIndex);
+        while (res.nextIndex() != -1) {
+            statements.add(res.value());
+            previousSuccessIndex = res.nextIndex();
+            res = readStatement(tokens, res.nextIndex());
+        }
+        if (statements.isEmpty()) {
+            throw new IllegalArgumentException("Expecting at least one statement");
         }
         return new ReadResults<>(previousSuccessIndex, statements);
     }
 
-    private ReadResults<Integer, Statement> readConditionStatement(List<Token> tokens, int startIndex) {
+    private ReadResults<Integer, Statement> readStatement(List<Token> tokens, int startIndex) {
         Token token = tryReadingToken(tokens, startIndex);
 
         return switch (token) {
             case KeywordToken keywordToken -> handleKeywordToken(tokens, startIndex, keywordToken);
             case VariableToken variableToken -> handleAssignmentStatement(tokens, startIndex, variableToken);
-            case null, default -> new ReadResults<>(-1, null);
+            case null, default -> STATEMENT_NOT_FOUND;
         };
     }
 
@@ -49,21 +53,21 @@ public class Parser {
         return switch (token.data) {
             case "if" -> handleIfStatement(tokens, startIndex, token);
             case "while" -> handleWhileStatement(tokens, startIndex, token);
-            case null, default -> new ReadResults<>(-1, null);
+            case null, default -> STATEMENT_NOT_FOUND;
         };
     }
 
     private ReadResults<Integer, Statement> handleWhileStatement(List<Token> tokens, int startIndex, KeywordToken token) {
         ReadResults<Integer, Expression> whileExpressionReadResults = readExpressionWithBrackets(tokens, startIndex + 1);
-        assertTokenIsPresent(whileExpressionReadResults, "Expecting expression after 'while' keyword, did not encounter one");
+        assertReadSuccess(whileExpressionReadResults, "Expecting expression after 'while' keyword, did not encounter one");
 
         //statementList
         ReadResults<Integer, List<Statement>> readStatementListResults = readStatementList(tokens, whileExpressionReadResults.nextIndex());
-        assertTokenIsPresent(readStatementListResults, "Expecting statements in 'while' loop, did not encounter one");
+        assertReadSuccess(readStatementListResults, "Expecting statements in 'while' loop, did not encounter one");
 
         int endStatementIndex = readStatementListResults.nextIndex();
         // end keyword
-        Token endKeyword = tryReadingToken(tokens, endStatementIndex);
+        KeywordToken endKeyword = tryReadingToken(tokens, endStatementIndex, KeywordToken.class);
         assertTokenIsEndKeyword(endKeyword);
 
         Statement whileStatement = new WhileStatement(whileExpressionReadResults.value(), readStatementListResults.value(), token.lineNumber);
@@ -72,38 +76,35 @@ public class Parser {
 
     private ReadResults<Integer, Statement> handleIfStatement(List<Token> tokens, int startIndex, KeywordToken token) {
         ReadResults<Integer, Expression> tryReadingIfCondition = readExpressionWithBrackets(tokens, startIndex + 1);
-        assertTokenIsPresent(tryReadingIfCondition, "Expecting condition in 'if' statement, did not encounter one");
+        assertReadSuccess(tryReadingIfCondition, "Expecting condition in 'if' statement, did not encounter one");
 
         ReadResults<Integer, List<Statement>> readStatementListIfClauseResults = readStatementList(tokens, tryReadingIfCondition.nextIndex());
-        assertTokenIsPresent(readStatementListIfClauseResults, "Expecting statements in 'if' section, did not encounter one");
+        assertReadSuccess(readStatementListIfClauseResults, "Expecting statements in 'if' section, did not encounter one");
 
         int potentialEndKeywordIndex = readStatementListIfClauseResults.nextIndex();
-        Token secondToken = tokens.get(potentialEndKeywordIndex);
-        assertTokenIsOfType(secondToken, KeywordToken.class);
+        KeywordToken nextKeywordToken = tryReadingToken(tokens, potentialEndKeywordIndex, KeywordToken.class);
 
         List<Statement> ifClauseStatements = readStatementListIfClauseResults.value();
         List<Statement> elseIfClauseStatements = List.of(); // default else clause is empty if undefined
 
-        if ("else".equals(secondToken.data)) {
+        if ("else".equals(nextKeywordToken.data)) {
             ReadResults<Integer, List<Statement>> elseSectionReadResults = readStatementList(tokens, potentialEndKeywordIndex + 1);
-            assertTokenIsPresent(elseSectionReadResults, "Expecting statements in 'else' section, did not encounter one");
+            assertReadSuccess(elseSectionReadResults, "Expecting statements in 'else' section, did not encounter one");
 
             elseIfClauseStatements = elseSectionReadResults.value();
             potentialEndKeywordIndex = elseSectionReadResults.nextIndex();
         }
-        Token endKeyword = tokens.get(potentialEndKeywordIndex);
-        assertTokenIsEndKeyword(endKeyword);
+        KeywordToken _ = tryReadingToken(tokens, potentialEndKeywordIndex, KeywordToken.class);
 
         Statement statement = new IfStatement(tryReadingIfCondition.value(), ifClauseStatements, elseIfClauseStatements, token.lineNumber);
         return new ReadResults<>(potentialEndKeywordIndex + 1, statement);
     }
 
     private ReadResults<Integer, Statement> handleAssignmentStatement(List<Token> tokens, int startIndex, VariableToken variableToken) {
-        Token assignmentToken = tryReadingToken(tokens, startIndex + 1);
-        assertTokenIsOfType(assignmentToken, AssignmentToken.class);
+        AssignmentToken _ = tryReadingToken(tokens, startIndex + 1, AssignmentToken.class);
 
         ReadResults<Integer, Expression> assignmentReadResults = readExpressionWithBrackets(tokens, startIndex + 2);
-        assertTokenIsPresent(assignmentReadResults, "Expecting expression to assign, did not encounter one");
+        assertReadSuccess(assignmentReadResults, "Expecting expression to assign, did not encounter one");
 
         Statement statement = new Assignment(variableToken.data, assignmentReadResults.value(), variableToken.lineNumber);
         return new ReadResults<>(assignmentReadResults.nextIndex(), statement);
@@ -116,51 +117,48 @@ public class Parser {
             case VariableToken variableToken -> chainIfPossible(tokens, startIndex, wrapInExpression(variableToken));
             case ConstantToken constantToken -> chainIfPossible(tokens, startIndex, wrapInExpression(constantToken));
             case OperatorToken operatorToken -> handleOperatorToken(tokens, startIndex, operatorToken);
-            case null, default -> new ReadResults<>(-1, null);
+            case null, default -> EXPRESSION_NOT_FOUND;
         };
     }
 
     private ReadResults<Integer, Expression> handleOperatorToken(List<Token> tokens, int startIndex, OperatorToken token) {
-        if (!"-".equals(token.data)) {
-            return new ReadResults<>(-1, null);
+        if (!Operator.MINUS.equals(token.getOperator())) {
+            return EXPRESSION_NOT_FOUND;
         }
 
-        Token constantToken = tryReadingToken(tokens, startIndex + 1);
-        ConstantToken constantToNegate = assertTokenIsOfType(constantToken, ConstantToken.class);
-        ValueExpression valueExpression = new ValueExpression("-" + constantToNegate.data);
+        ConstantToken constantToNegate = tryReadingToken(tokens, startIndex + 1, ConstantToken.class);
+        ValueExpression valueExpression = new ValueExpression(Operator.MINUS.character + constantToNegate.data);
         return chainIfPossible(tokens, startIndex + 1, valueExpression);
     }
 
     private ReadResults<Integer, Expression> handleOpeningBracket(List<Token> tokens, int startIndex) {
         ReadResults<Integer, Expression> expressionReadResults = readExpressionWithBrackets(tokens, startIndex + 1);
-        assertTokenIsPresent(expressionReadResults, "Expecting an expression in brackets, did not encounter one");
+        assertReadSuccess(expressionReadResults, "Expecting an expression in brackets, did not encounter one");
 
-        Token closingBracket = tokens.get(expressionReadResults.nextIndex());
-        assertTokenIsOfType(closingBracket, ClosingBracketToken.class);
+        ClosingBracketToken _ = tryReadingToken(tokens, expressionReadResults.nextIndex(), ClosingBracketToken.class);
 
         Expression expression = new BracketExpression(expressionReadResults.value());
-
         return chainIfPossible(tokens, expressionReadResults.nextIndex(), expression);
     }
 
     private ReadResults<Integer, Expression> chainIfPossible(List<Token> tokens, int startIndex, Expression expression) {
         int potentialLastTokenIndex = startIndex + 1;
-        Token nextToken = tryReadingToken(tokens, startIndex + 1);
-        if (nextToken instanceof OperatorToken) {
-            return chainExpressions(tokens, expression, potentialLastTokenIndex, nextToken);
+        Token nextToken = tryReadingToken(tokens, potentialLastTokenIndex);
+        if (nextToken instanceof OperatorToken operatorToken) {
+            return chainExpressions(tokens, expression, potentialLastTokenIndex, operatorToken);
         }
 
         return new ReadResults<>(potentialLastTokenIndex, expression);
     }
 
-    private ReadResults<Integer, Expression> chainExpressions(List<Token> tokens, Expression expression, int potentialLastTokenIndex, Token nextToken) {
+    private ReadResults<Integer, Expression> chainExpressions(List<Token> tokens, Expression expression, int potentialLastTokenIndex, OperatorToken operatorToken) {
         ReadResults<Integer, Expression> endIndex = readExpressionWithBrackets(tokens, potentialLastTokenIndex + 1);
-        assertTokenIsPresent(endIndex, "Expecting an expression, did not encounter valid one");
+        assertReadSuccess(endIndex, "Expecting an expression, did not encounter valid one");
 
         // we're collecting chained assignments from right to left, due to recursion call.
         // it is not a problem with basic unused variable usage analysis as order of operation is not important for it.
         // however let's try fixing operator order
-        String operator = nextToken.data;
+        Operator operator = operatorToken.getOperator();
         Expression rightSideExpression = endIndex.value();
         if (rightSideExpression instanceof OperatorExpression operatorExpression) {
             Expression rotatedExpression = rotateExpressions(expression, operator, operatorExpression);
@@ -171,19 +169,19 @@ public class Parser {
         return new ReadResults<>(endIndex.nextIndex(), chainedExpression);
     }
 
-    private static Expression rotateExpressions(Expression leftSideExpression, String operator, OperatorExpression rightSideExpression) {
+    private static Expression rotateExpressions(Expression leftSideExpression, Operator operator, OperatorExpression rightSideExpression) {
         // logic might be slightly easier if tree was mutable...
         // push operator and left input argument as deep into the operator tree as possible and connect it with rightSideExpression's left predecessor
         // this will transform "left * (right + right2)" into "(left * right) + right2"
         // and should respect operator precedence and multiple chain levels (hopefully)
         Stack<Expression> rightExpressions = new Stack<>();
-        Stack<String> operators = new Stack<>();
+        Stack<Operator> operators = new Stack<>();
 
         Expression leftPointer = rightSideExpression;
 
         while (leftPointer instanceof OperatorExpression(
-                Expression leftExpression, String rightOperator, Expression rightExpression
-        ) && operatorHasHigherPrecedence(operator, rightOperator)) {
+                Expression leftExpression, Operator rightOperator, Expression rightExpression
+        ) && shouldRotateDueToOperatorPrecedence(operator, rightOperator)) {
             // go deeper: put operator on stack, put right child expression on stack
             operators.push(rightOperator);
             rightExpressions.push(rightExpression);
@@ -198,7 +196,7 @@ public class Parser {
         // reconstruct right part of the tree
         while (!rightExpressions.isEmpty()) {
             Expression newRightExpression = rightExpressions.pop();
-            String newOperator = operators.pop();
+            Operator newOperator = operators.pop();
             Expression newLeftExpression = leftPointer;
 
             leftPointer = new OperatorExpression(newLeftExpression, newOperator, newRightExpression);
@@ -206,9 +204,8 @@ public class Parser {
         return leftPointer;
     }
 
-    private static boolean operatorHasHigherPrecedence(String left, String right) {
-        if ("<".equals(left) || ">".equals(left)) return true;
-        return ("*".equals(left) || "/".equals(left)) && !("<".equals(right) || ">".equals(right));
+    private static boolean shouldRotateDueToOperatorPrecedence(Operator left, Operator right) {
+        return left.precedence >= right.precedence;
     }
 
     private Expression wrapInExpression(VariableToken variableToken) {
@@ -226,22 +223,24 @@ public class Parser {
         return tokens.get(index);
     }
 
-    private static void assertTokenIsPresent(ReadResults<Integer, ?> readingResult, String errorMessage) {
+    private <T extends Token> T tryReadingToken(List<Token> tokens, int index, Class<T> tokenClass) {
+        if (index >= tokens.size()) {
+            throw new IllegalArgumentException("All tokens already consumed");
+        }
+        Token token = tokens.get(index);
+        if (!tokenClass.isInstance(token)) {
+            throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + (token == null ? "null" : token.getClass().toString()));
+        }
+        return tokenClass.cast(token);
+    }
+
+    private static void assertReadSuccess(ReadResults<Integer, ?> readingResult, String errorMessage) {
         if (readingResult.nextIndex() == -1) {
             throw new IllegalArgumentException(errorMessage);
         }
     }
 
-    private static <T extends Token> T assertTokenIsOfType(Token tokenToCheck, Class<T> tokenClass) {
-        if (!tokenClass.isInstance(tokenToCheck)) {
-            throw new IllegalArgumentException("Expected " + tokenClass.getName() + ", got " + (tokenToCheck == null ? "null" : tokenToCheck.getClass().toString()));
-        } else {
-            return tokenClass.cast(tokenToCheck);
-        }
-    }
-
-    private static void assertTokenIsEndKeyword(Token tokenToCheck) {
-        assertTokenIsOfType(tokenToCheck, KeywordToken.class);
+    private static void assertTokenIsEndKeyword(KeywordToken tokenToCheck) {
         if (!Objects.equals(tokenToCheck.data, "end")) {
             throw new IllegalArgumentException("Expected a token with data: " + "end" + ", got " + tokenToCheck.data);
         }

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.kw.parserProject.Operator.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ParserTest {
@@ -38,7 +39,7 @@ class ParserTest {
     void shouldRecognizeAssignmentWithOperation() {
         // when
         List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                        new ConstantToken("25"), new OperatorToken("+"), new VariableToken("x")))
+                        new ConstantToken("25"), new OperatorToken(PLUS), new VariableToken("x")))
                 .statements();
 
         // then
@@ -54,7 +55,7 @@ class ParserTest {
     void shouldRecognizeAssignmentWithOperationAndNegativeNumber() {
         // when
         List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                        new OperatorToken("-"), new ConstantToken("25"), new OperatorToken("+"), new VariableToken("x")))
+                        new OperatorToken(MINUS), new ConstantToken("25"), new OperatorToken(PLUS), new VariableToken("x")))
                 .statements();
 
         // then
@@ -72,7 +73,7 @@ class ParserTest {
     void shouldRecognizeAssignmentWithOperationAndNegativeNumberCase2() {
         // when
         List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                        new VariableToken("x"), new OperatorToken("*"), new OperatorToken("-"), new ConstantToken("25")))
+                        new VariableToken("x"), new OperatorToken(MULTIPLY), new OperatorToken(MINUS), new ConstantToken("25")))
                 .statements();
 
         // then
@@ -90,7 +91,7 @@ class ParserTest {
     void shouldRecognizeAssignmentWithOperationAndNegativeNumberCase3() {
         // when
         List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                        new VariableToken("x"), new OperatorToken("*"), new OperatorToken("-"), new ConstantToken("25.178")))
+                        new VariableToken("x"), new OperatorToken(MULTIPLY), new OperatorToken(MINUS), new ConstantToken("25.178")))
                 .statements();
 
         // then
@@ -108,7 +109,7 @@ class ParserTest {
     void shouldThrowWithWrongOperatorWhenConstantIsExpected() {
         // when
         IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("x"), new OperatorToken("+"), new OperatorToken("/"), new ConstantToken("25"))));
+                new VariableToken("x"), new OperatorToken(PLUS), new OperatorToken(DIVIDE), new ConstantToken("25"))));
         // then
         assertEquals("Expecting an expression, did not encounter valid one", illegalArgumentException.getMessage());
     }
@@ -119,7 +120,7 @@ class ParserTest {
         // x = y - x * 2
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new OperatorToken("-"), new VariableToken("x"), new OperatorToken("*"),
+                        new OperatorToken(MINUS), new VariableToken("x"), new OperatorToken(MULTIPLY),
                         new ConstantToken("2")))
                 .statements();
 
@@ -131,11 +132,11 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         // y - rightExpression
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "-");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MINUS);
         assertVariableExpression(topTierExpression.leftExpression(), "y");
 
         // rightExpression -> x * 2
-        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), "*");
+        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), MULTIPLY);
         assertVariableExpression(rightExpression.leftExpression(), "x");
         assertValueExpression(rightExpression.rightExpression(), 2);
 
@@ -150,8 +151,8 @@ class ParserTest {
         // x = x * 2 - y
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
-                        new OperatorToken("*"), new ConstantToken("2"),
-                        new OperatorToken("-"), new VariableToken("y")))
+                        new OperatorToken(MULTIPLY), new ConstantToken("2"),
+                        new OperatorToken(MINUS), new VariableToken("y")))
                 .statements();
 
         // then
@@ -162,11 +163,11 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         // leftExpression - 2
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "-");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MINUS);
         assertVariableExpression(topTierExpression.rightExpression(), "y");
 
         // leftExpression -> x * 2
-        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
         assertVariableExpression(leftExpression.leftExpression(), "x");
         assertValueExpression(leftExpression.rightExpression(), 2);
 
@@ -179,8 +180,8 @@ class ParserTest {
         // x = x * (2 - y)
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
-                        new OperatorToken("*"), new OpeningBracketToken(), new ConstantToken("2"),
-                        new OperatorToken("-"), new VariableToken("y"), new ClosingBracketToken()))
+                        new OperatorToken(MULTIPLY), new OpeningBracketToken(), new ConstantToken("2"),
+                        new OperatorToken(MINUS), new VariableToken("y"), new ClosingBracketToken()))
                 .statements();
 
         // then
@@ -190,13 +191,13 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "*");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MULTIPLY);
         // x * rightExpression
         assertVariableExpression(topTierExpression.leftExpression(), "x");
         BracketExpression bracketExpression = assertBracketExpression(topTierExpression.rightExpression());
 
         // rightExpression -> expressionInBracket -> ( 2 - y )
-        OperatorExpression expressionInBrackets = assertOperator(bracketExpression.expressionInBrackets(), "-");
+        OperatorExpression expressionInBrackets = assertOperator(bracketExpression.expressionInBrackets(), MINUS);
         // 2 - y
         assertValueExpression(expressionInBrackets.leftExpression(), 2);
         assertVariableExpression(expressionInBrackets.rightExpression(), "y");
@@ -210,8 +211,8 @@ class ParserTest {
         // x = 2 * x + y / 5
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new ConstantToken("2"),
-                        new OperatorToken("*"), new VariableToken("x"), new OperatorToken("+"),
-                        new VariableToken("y"), new OperatorToken("/"), new ConstantToken("5")))
+                        new OperatorToken(MULTIPLY), new VariableToken("x"), new OperatorToken(PLUS),
+                        new VariableToken("y"), new OperatorToken(DIVIDE), new ConstantToken("5")))
                 .statements();
 
         // then
@@ -221,17 +222,17 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "+");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), PLUS);
         // leftExpression * rightExpression
 
         // leftExpression -> 2 * x
-        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
 
         assertValueExpression(leftExpression.leftExpression(), 2);
         assertVariableExpression(leftExpression.rightExpression(), "x");
 
         // rightExpression -> y / 5
-        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), "/");
+        OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), DIVIDE);
 
         assertVariableExpression(rightExpression.leftExpression(), "y");
         assertValueExpression(rightExpression.rightExpression(), 5);
@@ -245,8 +246,8 @@ class ParserTest {
         // x = x * y * z / a
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
-                        new OperatorToken("*"), new VariableToken("y"), new OperatorToken("*"),
-                        new VariableToken("z"), new OperatorToken("/"), new VariableToken("a")))
+                        new OperatorToken(MULTIPLY), new VariableToken("y"), new OperatorToken(MULTIPLY),
+                        new VariableToken("z"), new OperatorToken(DIVIDE), new VariableToken("a")))
                 .statements();
 
         // then
@@ -256,16 +257,16 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "/");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), DIVIDE);
         // leftExpression / a
         Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
         // leftExpression -> x * y * z
         // x -> left, y * z -> right, due to rotation
-        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
         assertVariableExpression(secondLevelLeftExpression.rightExpression(), "z");
-        OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.leftExpression(), "*");
+        OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.leftExpression(), MULTIPLY);
         assertVariableExpression(thirdTierExpression.leftExpression(), "x");
         assertVariableExpression(thirdTierExpression.rightExpression(), "y");
 
@@ -278,8 +279,8 @@ class ParserTest {
         // x = x < y * z > a
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
-                        new OperatorToken("<"), new VariableToken("y"), new OperatorToken("*"),
-                        new VariableToken("z"), new OperatorToken(">"), new VariableToken("a")))
+                        new OperatorToken(LESS_THAN), new VariableToken("y"), new OperatorToken(MULTIPLY),
+                        new VariableToken("z"), new OperatorToken(GREATER_THAN), new VariableToken("a")))
                 .statements();
 
         // then
@@ -289,13 +290,13 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "*");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MULTIPLY);
 
-        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "<");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), LESS_THAN);
         assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
         assertVariableExpression(secondLevelLeftExpression.rightExpression(), "y");
 
-        OperatorExpression secondLevelRightExpression = assertOperator(topTierExpression.rightExpression(), ">");
+        OperatorExpression secondLevelRightExpression = assertOperator(topTierExpression.rightExpression(), GREATER_THAN);
         assertVariableExpression(secondLevelRightExpression.leftExpression(), "z");
         assertVariableExpression(secondLevelRightExpression.rightExpression(), "a");
 
@@ -308,9 +309,9 @@ class ParserTest {
         // x = x < y * z > a + 1
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
-                        new OperatorToken("<"), new VariableToken("y"), new OperatorToken("*"),
-                        new VariableToken("z"), new OperatorToken(">"), new VariableToken("a"),
-                        new OperatorToken("+"), new ConstantToken("1")))
+                        new OperatorToken(LESS_THAN), new VariableToken("y"), new OperatorToken(MULTIPLY),
+                        new VariableToken("z"), new OperatorToken(GREATER_THAN), new VariableToken("a"),
+                        new OperatorToken(PLUS), new ConstantToken("1")))
                 .statements();
 
         // then
@@ -320,12 +321,12 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "+");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), PLUS);
         assertValueExpression(topTierExpression.rightExpression(), 1f);
 
-        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
-        OperatorExpression xLessThanY = assertOperator(secondLevelLeftExpression.leftExpression(), "<");
-        OperatorExpression zGreaterThanA = assertOperator(secondLevelLeftExpression.rightExpression(), ">");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
+        OperatorExpression xLessThanY = assertOperator(secondLevelLeftExpression.leftExpression(), LESS_THAN);
+        OperatorExpression zGreaterThanA = assertOperator(secondLevelLeftExpression.rightExpression(), GREATER_THAN);
 
         assertVariableExpression(xLessThanY.leftExpression(), "x");
         assertVariableExpression(xLessThanY.rightExpression(), "y");
@@ -342,9 +343,9 @@ class ParserTest {
         // x = x * ( y + z ) / a
         List<Statement> statements = parser.parse(List.of(
                         new VariableToken("x"), new AssignmentToken(),
-                        new VariableToken("x"), new OperatorToken("*"),
-                        new OpeningBracketToken(), new VariableToken("y"), new OperatorToken("+"), new VariableToken("z"),
-                        new ClosingBracketToken(), new OperatorToken("/"), new VariableToken("a")))
+                        new VariableToken("x"), new OperatorToken(MULTIPLY),
+                        new OpeningBracketToken(), new VariableToken("y"), new OperatorToken(PLUS), new VariableToken("z"),
+                        new ClosingBracketToken(), new OperatorToken(DIVIDE), new VariableToken("a")))
                 .statements();
 
         // then
@@ -354,19 +355,19 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), "/");
+        OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), DIVIDE);
         // leftExpression / a
 
         Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
         // x * ( y + z )
-        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), "*");
+        OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
 
         assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
         BracketExpression thirdTierExpression = assertBracketExpression(secondLevelLeftExpression.rightExpression());
 
-        OperatorExpression expressionInBracket = assertOperator(thirdTierExpression.expressionInBrackets(), "+");
+        OperatorExpression expressionInBracket = assertOperator(thirdTierExpression.expressionInBrackets(), PLUS);
 
         assertVariableExpression(expressionInBracket.leftExpression(), "y");
         assertVariableExpression(expressionInBracket.rightExpression(), "z");
@@ -397,7 +398,7 @@ class ParserTest {
     void shouldHandleIfStatementWithoutElseClause() {
         // when
         List<Statement> statements = parser.parse(List.of(new KeywordToken("if"),
-                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+                        new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
                         new KeywordToken("end")))
                 .statements();
@@ -423,7 +424,7 @@ class ParserTest {
     void shouldHandleIfStatementWithElseClause() {
         // when
         List<Statement> statements = parser.parse(List.of(new KeywordToken("if"),
-                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+                        new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
                         new KeywordToken("else"),
                         new VariableToken("y"), new AssignmentToken(), new VariableToken("x"),
@@ -451,7 +452,7 @@ class ParserTest {
     void shouldHandleWhileStatement() {
         // when
         List<Statement> statements = parser.parse(List.of(new KeywordToken("while"),
-                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+                        new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
                         new KeywordToken("end")))
                 .statements();
@@ -472,20 +473,20 @@ class ParserTest {
     @Test
     void shouldHandleLackOfEndKeywordInWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))));
     }
 
     @Test
     void shouldHandleDifferentKeywordTokenInWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("else"), new ConstantToken("2"), new KeywordToken("end"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("else"), new ConstantToken("2"), new KeywordToken("end"))));
     }
 
     @Test
     void shouldHandleDifferentTypeTokenInWhileStatement() {
         // something reasonable, but not parsable to expression
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new ConstantToken("2"), new KeywordToken("end"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken(LESS_THAN), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new ConstantToken("2"), new KeywordToken("end"))));
     }
 
     @Test
@@ -514,7 +515,7 @@ class ParserTest {
         assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("end"))));
     }
 
-    private static OperatorExpression assertOperator(Expression operatorExpression, String expected) {
+    private static OperatorExpression assertOperator(Expression operatorExpression, Operator expected) {
         assertInstanceOf(OperatorExpression.class, operatorExpression);
         OperatorExpression expression = (OperatorExpression) operatorExpression;
         assertEquals(expected, expression.operator());

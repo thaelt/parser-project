@@ -1,6 +1,8 @@
 package com.kw.parserProject.statements;
 
-public record Assignment(String writeVariable, Expression expression, int lineNumber) implements Statement {
+import com.kw.parserProject.utility.Printable;
+
+public record Assignment(String writeVariable, Expression expression, int lineNumber) implements Statement, Printable {
     public Assignment(String writeVariable, Expression expression) {
         this(writeVariable, expression, -1);
     }
@@ -10,7 +12,8 @@ public record Assignment(String writeVariable, Expression expression, int lineNu
         return print();
     }
 
-    String print() {
+    @Override
+    public String print() {
         return writeVariable + " = " + expression.print();
     }
 

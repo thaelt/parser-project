@@ -6,7 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Lexer {
-    private static final List<Character> RECOGNIZED_OPERATORS = List.of('+', '-', '*', '/', '<', '>');
     private static final List<String> RECOGNIZED_KEYWORDS = List.of("while", "else", "end", "if");
 
     public List<Token> extractTokens(String programCode) {
@@ -43,33 +42,7 @@ public class Lexer {
         }
 
         if (Character.isDigit(character)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(character);
-
-            int i;
-            boolean encounteredDecimalSeparator = false;
-            for (i = startingPos + 1; i < input.length; i++) {
-                char current = input[i];
-
-                if (current == '.') {
-                    if (encounteredDecimalSeparator) {
-                        throw new IllegalArgumentException("Multiple decimal separators found when attempting to parse a number");
-                    }
-                    encounteredDecimalSeparator = true;
-                } else if (!Character.isDigit(current)) {
-                    break;
-                }
-
-                stringBuilder.append(current);
-            }
-
-            String readNumber = stringBuilder.toString();
-            if (readNumber.endsWith(".")) {
-                throw new IllegalArgumentException("Encountering decimal number with separator, but without any numbers after it");
-            }
-
-            tokens.add(new ConstantToken(stringBuilder.toString()));
-            return i;
+            return readNumeric(input, startingPos, tokens);
         }
         if (character >= 'a' && character <= 'z') {
             // check for reserved keywords
@@ -79,8 +52,9 @@ public class Lexer {
             tokens.add(new VariableToken(variableName));
             return startingPos + 1;
         }
-        if (RECOGNIZED_OPERATORS.contains(character)) {
-            tokens.add(new OperatorToken(Character.toString(character)));
+        Operator resolvedOperator = Operator.resolve(character);
+        if (resolvedOperator != null) {
+            tokens.add(new OperatorToken(resolvedOperator));
             return startingPos + 1;
         }
         if (character == '=') {
@@ -96,6 +70,36 @@ public class Lexer {
             return startingPos + 1;
         }
         throw new IllegalArgumentException("Cannot recognize token at position: " + startingPos);
+    }
+
+    private int readNumeric(char[] input, int startingPos, List<Token> tokens) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        boolean encounteredDecimalSeparator = false;
+        int i = startingPos;
+        while (i < input.length) {
+            char current = input[i];
+
+            if (current == '.') {
+                if (encounteredDecimalSeparator) {
+                    throw new IllegalArgumentException("Multiple decimal separators found when attempting to parse a number");
+                }
+                encounteredDecimalSeparator = true;
+            } else if (!Character.isDigit(current)) {
+                break;
+            }
+
+            stringBuilder.append(current);
+            i++;
+        }
+
+        String readNumber = stringBuilder.toString();
+        if (readNumber.endsWith(".")) {
+            throw new IllegalArgumentException("Encountering decimal number with separator, but without any numbers after it");
+        }
+
+        tokens.add(new ConstantToken(stringBuilder.toString()));
+        return i;
     }
 
     private String readIdentifier(char[] input, int startingPos) {
