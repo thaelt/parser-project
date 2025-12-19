@@ -33,7 +33,7 @@ class UnusedStatementCheckerTest {
         );
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(statements);
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(statements));
 
         // then
         assertEquals(1, results.size());
@@ -48,7 +48,7 @@ class UnusedStatementCheckerTest {
         );
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(statements);
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(statements));
 
         // then
         assertEquals(2, results.size());
@@ -64,7 +64,7 @@ class UnusedStatementCheckerTest {
         );
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(statements);
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(statements));
 
         // then
         assertEquals(3, results.size());
@@ -81,7 +81,7 @@ class UnusedStatementCheckerTest {
         );
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(statements);
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(statements));
 
         // then
         assertEquals(2, results.size());
@@ -97,7 +97,7 @@ class UnusedStatementCheckerTest {
         );
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(statements);
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(statements));
 
         // then
         assertEquals(2, results.size());
@@ -112,7 +112,7 @@ class UnusedStatementCheckerTest {
         Statement whileStatement = new WhileStatement(xLessThanFive, List.of(xIsFive));
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(whileStatement)));
 
         // then
         assertEquals(0, results.size());
@@ -124,7 +124,7 @@ class UnusedStatementCheckerTest {
         Statement whileStatement = new WhileStatement(zLessThanFive, List.of(xIsFive));
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(whileStatement));
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(whileStatement)));
 
         // then
         assertEquals(1, results.size());
@@ -137,7 +137,7 @@ class UnusedStatementCheckerTest {
         Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of());
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(ifStatement)));
 
         // then
         assertEquals(1, results.size());
@@ -150,7 +150,7 @@ class UnusedStatementCheckerTest {
         Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix));
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement));
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(ifStatement)));
 
         // then
         assertEquals(2, results.size());
@@ -164,7 +164,7 @@ class UnusedStatementCheckerTest {
         Statement ifStatement = new IfStatement(zLessThanFive, List.of(xIsFive), List.of(xIsSix));
 
         // when
-        List<Statement> results = unusedStatementChecker.getUnusedStatements(List.of(ifStatement, yIsXPlusTwo));
+        List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(ifStatement, yIsXPlusTwo)));
 
         // then
         assertEquals(1, results.size());

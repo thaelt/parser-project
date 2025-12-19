@@ -11,11 +11,11 @@ import java.util.stream.Stream;
 
 public class UnusedStatementChecker {
 
-    List<Statement> getUnusedStatements(List<Statement> program) {
+    List<Statement> getUnusedStatements(Program program) {
         List<Statement> unusedOverwrittenAssignmentsFromStatements = new LinkedList<>();
         Map<String, List<Statement>> recentAssignments = new HashMap<>();
 
-        for (Statement parsedAssignment : program) {
+        for (Statement parsedAssignment : program.statements()) {
             updateUnusedStatements(unusedOverwrittenAssignmentsFromStatements, recentAssignments, parsedAssignment);
         }
 

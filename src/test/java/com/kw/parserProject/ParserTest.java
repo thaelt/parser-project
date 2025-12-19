@@ -22,7 +22,8 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignment() {
         // when
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new ConstantToken("25")));
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new ConstantToken("25")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -37,7 +38,8 @@ class ParserTest {
     void shouldRecognizeAssignmentWithOperation() {
         // when
         List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new ConstantToken("25"), new OperatorToken("+"), new VariableToken("x")));
+                        new ConstantToken("25"), new OperatorToken("+"), new VariableToken("x")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -52,8 +54,11 @@ class ParserTest {
     void shouldRecognizeAssignmentWithChainOperation() {
         // when
         // x = y - x * 2
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("y"), new OperatorToken("-"), new VariableToken("x"), new OperatorToken("*"), new ConstantToken("2")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
+                        new OperatorToken("-"), new VariableToken("x"), new OperatorToken("*"),
+                        new ConstantToken("2")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -81,8 +86,11 @@ class ParserTest {
         // when
         // operator balancing not yet implemented fully
         // x = x * 2 - y
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("x"), new OperatorToken("*"), new ConstantToken("2"), new OperatorToken("-"), new VariableToken("y")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
+                        new OperatorToken("*"), new ConstantToken("2"),
+                        new OperatorToken("-"), new VariableToken("y")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -108,9 +116,11 @@ class ParserTest {
         // when
         // operator balancing not yet implemented fully
         // x = x * (2 - y)
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("x"), new OperatorToken("*"),
-                new OpeningBracketToken(), new ConstantToken("2"), new OperatorToken("-"), new VariableToken("y"), new ClosingBracketToken()));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
+                        new OperatorToken("*"), new OpeningBracketToken(), new ConstantToken("2"),
+                        new OperatorToken("-"), new VariableToken("y"), new ClosingBracketToken()))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -138,10 +148,11 @@ class ParserTest {
         // when
         // operator balancing not yet implemented fully
         // x = 2 * x + y / 5
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new ConstantToken("2"), new OperatorToken("*"), new VariableToken("x"),
-                new OperatorToken("+"),
-                new VariableToken("y"), new OperatorToken("/"), new ConstantToken("5")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new ConstantToken("2"),
+                        new OperatorToken("*"), new VariableToken("x"), new OperatorToken("+"),
+                        new VariableToken("y"), new OperatorToken("/"), new ConstantToken("5")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -173,11 +184,11 @@ class ParserTest {
         // when
         // operator balancing not yet implemented fully
         // x = x * y * z / a
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("x"),
-                new OperatorToken("*"), new VariableToken("y"),
-                new OperatorToken("*"), new VariableToken("z"),
-                new OperatorToken("/"), new VariableToken("a")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("x"),
+                        new OperatorToken("*"), new VariableToken("y"), new OperatorToken("*"),
+                        new VariableToken("z"), new OperatorToken("/"), new VariableToken("a")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -208,10 +219,12 @@ class ParserTest {
         // when
         // operator balancing not yet implemented fully
         // x = x * ( y + z ) / a
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
-                new VariableToken("x"), new OperatorToken("*"),
-                new OpeningBracketToken(), new VariableToken("y"), new OperatorToken("+"), new VariableToken("z"), new ClosingBracketToken(),
-                new OperatorToken("/"), new VariableToken("a")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(),
+                        new VariableToken("x"), new OperatorToken("*"),
+                        new OpeningBracketToken(), new VariableToken("y"), new OperatorToken("+"), new VariableToken("z"),
+                        new ClosingBracketToken(), new OperatorToken("/"), new VariableToken("a")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -244,7 +257,9 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignmentReadingVariable() {
         // when
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y")));
+        List<Statement> statements = parser.parse(List.of(
+                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -260,10 +275,11 @@ class ParserTest {
     @Test
     void shouldHandleIfStatementWithoutElseClause() {
         // when
-        List<Statement> statements = parser.parse(
-                List.of(new KeywordToken("if"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+        List<Statement> statements = parser.parse(List.of(new KeywordToken("if"),
+                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new KeywordToken("end")));
+                        new KeywordToken("end")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -285,12 +301,13 @@ class ParserTest {
     @Test
     void shouldHandleIfStatementWithElseClause() {
         // when
-        List<Statement> statements = parser.parse(
-                List.of(new KeywordToken("if"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+        List<Statement> statements = parser.parse(List.of(new KeywordToken("if"),
+                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
                         new KeywordToken("else"),
                         new VariableToken("y"), new AssignmentToken(), new VariableToken("x"),
-                        new KeywordToken("end")));
+                        new KeywordToken("end")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -312,10 +329,11 @@ class ParserTest {
     @Test
     void shouldHandleWhileStatement() {
         // when
-        List<Statement> statements = parser.parse(
-                List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
+        List<Statement> statements = parser.parse(List.of(new KeywordToken("while"),
+                        new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
                         new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new KeywordToken("end")));
+                        new KeywordToken("end")))
+                .statements();
 
         // then
         assertEquals(1, statements.size());
@@ -333,65 +351,46 @@ class ParserTest {
     @Test
     void shouldHandleLackOfEndKeywordInWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
-                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))));
     }
 
     @Test
     void shouldHandleDifferentKeywordTokenInWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
-                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new KeywordToken("else"), new ConstantToken("2"), new KeywordToken("end"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("else"), new ConstantToken("2"), new KeywordToken("end"))));
     }
 
     @Test
     void shouldHandleDifferentTypeTokenInWhileStatement() {
         // something reasonable, but not parsable to expression
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"),
-                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new ConstantToken("2"), new KeywordToken("end"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("a"), new OperatorToken("<"), new ConstantToken("3"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new ConstantToken("2"), new KeywordToken("end"))));
     }
 
     @Test
     void shouldHandleBogusTokenAfterWhileStatement() {
         // something unreasonable, like closing bracket
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new KeywordToken("while"),
-                        new ClosingBracketToken(), new AssignmentToken(), new VariableToken("y"))
-        ));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new ClosingBracketToken(), new AssignmentToken(), new VariableToken("y"))));
     }
 
     @Test
     void shouldHandleDeadSilenceAfterWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new KeywordToken("while"))));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("while"))));
     }
 
     @Test
     void shouldHandleNonExpressionAfterWhileStatement() {
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new KeywordToken("while"),
-                        new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))
-        ));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new KeywordToken("while"), new VariableToken("x"), new AssignmentToken(), new VariableToken("y"))));
     }
 
     @Test
     void shouldHandleEndingStatementListRandomly() {
         // fails due to not consuming all tokens; any non-statement can be used
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(
-                List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"),
-                        new KeywordToken("end"))
-        ));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("end"))));
     }
 
     private static OperatorExpression assertOperator(Expression operatorExpression, String expected) {

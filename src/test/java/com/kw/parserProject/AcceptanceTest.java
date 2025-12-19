@@ -30,8 +30,8 @@ public class AcceptanceTest {
     void shouldDetectUnusedStatements(String input, String expectedOutput) {
         // when
         List<Token> tokens = lexer.extractTokens(input);
-        List<Statement> statements = parser.parse(tokens);
-        List<Statement> actualOutput = unusedStatementChecker.getUnusedStatements(statements);
+        Program parsedProgram = parser.parse(tokens);
+        List<Statement> actualOutput = unusedStatementChecker.getUnusedStatements(parsedProgram);
 
         // then
         assertEquals(expectedOutput, actualOutput.toString());

@@ -10,13 +10,13 @@ import java.util.Objects;
 
 public class Parser {
 
-    public List<Statement> parse(List<Token> tokens) {
+    public Program parse(List<Token> tokens) {
         ReadResults<Integer, List<Statement>> program = readStatementList(new ArrayList<>(tokens), 0);
         if (program.nextIndex() != tokens.size()) {
             throw new IllegalArgumentException("Did not manage to consume all tokens");
         }
 
-        return program.value();
+        return new Program(program.value());
     }
 
     private ReadResults<Integer, List<Statement>> readStatementList(List<Token> tokens, int startIndex) {
