@@ -25,7 +25,7 @@ public class AcceptanceTest {
         unusedStatementChecker = new UnusedStatementChecker();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Expecting {1}")
     @MethodSource("basicTestCases")
     void shouldDetectUnusedStatements(String input, String expectedOutput) {
         // when
