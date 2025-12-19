@@ -65,7 +65,7 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
         assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
         ValueExpression leftExpression = (ValueExpression) ((OperatorExpression) actualStatement.expression()).leftExpression();
-        assertEquals(-25, leftExpression.value());
+        assertEquals(-25f, leftExpression.value());
     }
 
     @Test
@@ -83,9 +83,26 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
         assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
         ValueExpression leftExpression = (ValueExpression) ((OperatorExpression) actualStatement.expression()).rightExpression();
-        assertEquals(-25, leftExpression.value());
+        assertEquals(-25f, leftExpression.value());
     }
 
+    @Test
+    void shouldRecognizeAssignmentWithOperationAndNegativeNumberCase3() {
+        // when
+        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(),
+                        new VariableToken("x"), new OperatorToken("*"), new OperatorToken("-"), new ConstantToken("25.178")))
+                .statements();
+
+        // then
+        assertEquals(1, statements.size());
+        assertInstanceOf(Assignment.class, statements.getFirst());
+
+        Assignment actualStatement = (Assignment) statements.getFirst();
+        assertEquals("x", actualStatement.writeVariable());
+        assertIterableEquals(List.of("x"), actualStatement.expression().readVariables());
+        ValueExpression leftExpression = (ValueExpression) ((OperatorExpression) actualStatement.expression()).rightExpression();
+        assertEquals(-25.178f, leftExpression.value());
+    }
 
     @Test
     void shouldThrowWithWrongOperatorWhenConstantIsExpected() {
@@ -451,7 +468,7 @@ class ParserTest {
         return (BracketExpression) bracketExpression;
     }
 
-    private static void assertValueExpression(Expression valueExpression, int expected) {
+    private static void assertValueExpression(Expression valueExpression, float expected) {
         assertInstanceOf(ValueExpression.class, valueExpression);
         assertEquals(expected, ((ValueExpression) valueExpression).value());
     }

@@ -126,7 +126,7 @@ public class Parser {
 
         Token constantToken = tryReadingToken(tokens, startIndex + 1);
         ConstantToken constantToNegate = assertTokenIsOfType(constantToken, ConstantToken.class);
-        ValueExpression valueExpression = new ValueExpression(-Integer.parseInt(constantToNegate.data));
+        ValueExpression valueExpression = new ValueExpression("-" + constantToNegate.data);
         return chainIfPossible(tokens, startIndex + 1, valueExpression);
     }
 
@@ -184,7 +184,7 @@ public class Parser {
     }
 
     private Expression wrapInExpression(ConstantToken constantToken) {
-        return new ValueExpression(Integer.parseInt(constantToken.data));
+        return new ValueExpression(constantToken.data);
     }
 
     private Token tryReadingToken(List<Token> tokens, int index) {

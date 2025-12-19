@@ -75,10 +75,10 @@ public class AcceptanceTest {
                               c = c + 10
                               d = 2
                            end
-                           d = 5
+                           d = -5.2145
                         end
                         b = c + a
-                        """, "[d = 12, d = 2, d = 5, b = c + a]"),
+                        """, "[d = 12, d = 2, d = -5.2145, b = c + a]"),
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
@@ -89,7 +89,7 @@ public class AcceptanceTest {
                               c = c + 10
                               d = 2
                            end
-                           d = 5
+                           d = -5.2145
                         end
                         b = c + a
                         e = 2 + (d + b)

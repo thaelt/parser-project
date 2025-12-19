@@ -46,10 +46,26 @@ public class Lexer {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(character);
 
-            int i = startingPos + 1;
-            while (i < input.length && Character.isDigit(input[i])) {
-                stringBuilder.append(input[i]);
-                i++;
+            int i;
+            boolean encounteredDecimalSeparator = false;
+            for (i = startingPos + 1; i < input.length; i++) {
+                char current = input[i];
+
+                if (current == '.') {
+                    if (encounteredDecimalSeparator) {
+                        throw new IllegalArgumentException("Multiple decimal separators found when attempting to parse a number");
+                    }
+                    encounteredDecimalSeparator = true;
+                } else if (!Character.isDigit(current)) {
+                    break;
+                }
+
+                stringBuilder.append(current);
+            }
+
+            String readNumber = stringBuilder.toString();
+            if (readNumber.endsWith(".")) {
+                throw new IllegalArgumentException("Encountering decimal number with separator, but without any numbers after it");
             }
 
             tokens.add(new ConstantToken(stringBuilder.toString()));
