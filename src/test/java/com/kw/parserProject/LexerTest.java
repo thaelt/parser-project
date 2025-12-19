@@ -54,6 +54,36 @@ class LexerTest {
         assertEquals("2351", numberToken.data);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"2351.x = 3", "2351. x = 3", "2351."})
+    void shouldFailOnSeparatorBeingLastCharOfNumericToken(String input) {
+        // when
+        IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(input));
+
+        // then
+        assertEquals("Encountering decimal number with separator, but without any numbers after it", illegalArgumentException.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"235.1.x = 3", "192.168.1.1 x = 3", "2351.."})
+    void shouldFailOnMultipleSeparatorsForNumericToken(String input) {
+        // when
+        IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(input));
+
+        // then
+        assertEquals("Multiple decimal separators found when attempting to parse a number", illegalArgumentException.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {".2351 x = 3", "x = 3 .24", ". 2351.."})
+    void shouldFailOnSeparatorAsFirstChar(String input) {
+        // when
+        IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(input));
+
+        // then
+        assertTrue(illegalArgumentException.getMessage().startsWith("Cannot recognize token at position"));
+    }
+
     @Test
     void shouldIgnoreWhitespacesAndLineBreaks() {
         // when
@@ -82,7 +112,7 @@ class LexerTest {
     }
 
     @Test
-    void shouldFailOnUnknownCharacter(){
+    void shouldFailOnUnknownCharacter() {
         // expect
         assertThrows(IllegalArgumentException.class, () -> lexer.parseLine("💩"));
     }
@@ -101,7 +131,7 @@ class LexerTest {
                 Arguments.of(">", OperatorToken.class, ">"),
                 Arguments.of("5", ConstantToken.class, "5"),
                 Arguments.of("123", ConstantToken.class, "123"),
-//                Arguments.of("123.21", ConstantToken.class, "123.21"),
+                Arguments.of("123.21", ConstantToken.class, "123.21"),
                 Arguments.of("0", ConstantToken.class, "0"),
                 Arguments.of("(", OpeningBracketToken.class, "("),
                 Arguments.of(")", ClosingBracketToken.class, ")"),
