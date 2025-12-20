@@ -7,7 +7,6 @@ import com.kw.parserProject.utility.ReadResults;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Stack;
 
 public class Parser {
 
@@ -170,38 +169,28 @@ public class Parser {
     }
 
     private static Expression rotateExpressions(Expression leftSideExpression, Operator operator, OperatorExpression rightSideExpression) {
-        // logic might be slightly easier if tree was mutable...
         // push operator and left input argument as deep into the operator tree as possible and connect it with rightSideExpression's left predecessor
         // this will transform "left * (right + right2)" into "(left * right) + right2"
         // and should respect operator precedence and multiple chain levels (hopefully)
-        Stack<Expression> rightExpressions = new Stack<>();
-        Stack<Operator> operators = new Stack<>();
 
         Expression leftPointer = rightSideExpression;
+        OperatorExpression parentPointer = null;
 
-        while (leftPointer instanceof OperatorExpression(
-                Expression leftExpression, Operator rightOperator, Expression rightExpression
-        ) && shouldRotateDueToOperatorPrecedence(operator, rightOperator)) {
-            // go deeper: put operator on stack, put right child expression on stack
-            operators.push(rightOperator);
-            rightExpressions.push(rightExpression);
-            // move pointers
-            leftPointer = leftExpression;
+        while (leftPointer instanceof OperatorExpression ex
+                && shouldRotateDueToOperatorPrecedence(operator, ex.operator())) {
+            parentPointer = ex;
+            leftPointer = ex.leftExpression();
         }
 
-        // create new leaf node - attach left part of expression to the operator
-        Expression childRightExpression = leftPointer;
-        leftPointer = new OperatorExpression(leftSideExpression, operator, childRightExpression);
+        // create new leaf node - attach left part of expression to the operator as a right node
+        OperatorExpression newExpression = new OperatorExpression(leftSideExpression, operator, leftPointer);
 
-        // reconstruct right part of the tree
-        while (!rightExpressions.isEmpty()) {
-            Expression newRightExpression = rightExpressions.pop();
-            Operator newOperator = operators.pop();
-            Expression newLeftExpression = leftPointer;
-
-            leftPointer = new OperatorExpression(newLeftExpression, newOperator, newRightExpression);
+        if (parentPointer != null) {
+            parentPointer.setLeftExpression(newExpression);
+            return rightSideExpression;
         }
-        return leftPointer;
+
+        return newExpression;
     }
 
     private static boolean shouldRotateDueToOperatorPrecedence(Operator left, Operator right) {
