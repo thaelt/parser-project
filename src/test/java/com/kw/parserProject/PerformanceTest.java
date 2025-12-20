@@ -32,10 +32,10 @@ public class PerformanceTest {
         StringBuilder builder = new StringBuilder();
 
         System.out.println("GENERATING DATA");
-        for (int j = 0; j < 1000_000; j++) {
+        for (int j = 0; j < 10_000; j++) {
             char variable = (char) ('a' + Math.random() * ('z' - 'a'));
             builder.append(variable).append("=");
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 250; i++) {
                 builder.append(i).append("*").append(variable).append("/");
             }
             builder.append("1 + 21");
