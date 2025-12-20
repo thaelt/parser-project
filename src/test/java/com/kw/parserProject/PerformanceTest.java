@@ -59,6 +59,48 @@ public class PerformanceTest {
     }
 
     @Test
+    void handleManyChainedOperationsInIfLoop() {
+        StringBuilder builder = new StringBuilder();
+
+        System.out.println("GENERATING DATA");
+        builder.append("if 2 < 4 \n");
+        for (int j = 0; j < 5000; j++) {
+            char variable = (char) ('a' + Math.random() * ('z' - 'a'));
+            builder.append(variable).append("=");
+            for (int i = 0; i < 250; i++) {
+                builder.append(i).append("*").append(variable).append("/");
+            }
+            builder.append("1 + 21\n");
+        }
+        builder.append("else \n");
+        for (int j = 0; j < 5000; j++) {
+            char variable = (char) ('a' + Math.random() * ('z' - 'a'));
+            builder.append(variable).append("=");
+            for (int i = 0; i < 250; i++) {
+                builder.append(i).append("*").append(variable).append("/");
+            }
+            builder.append("1 + 21\n");
+        }
+        builder.append("end \n");
+        String input = builder.toString();
+        System.out.println("GENERATING DATA - DONE");
+        // when
+        Instant start = Instant.now();
+        List<Token> tokens = lexer.extractTokens(input);
+        Instant afterTokens = Instant.now();
+        System.out.println("STEP 1 " + ChronoUnit.MILLIS.between(start, afterTokens) + "ms");
+        Program parsedProgram = parser.parse(tokens);
+        Instant afterParsing = Instant.now();
+        System.out.println("STEP 2 " + ChronoUnit.MILLIS.between(afterTokens, afterParsing) + "ms");
+        List<Statement> actualOutput = unusedStatementChecker.getUnusedStatements(parsedProgram);
+        Instant afterAnalysis = Instant.now();
+        System.out.println("STEP 3 " + ChronoUnit.MILLIS.between(afterParsing, afterAnalysis) + "ms");
+
+        // then
+        assertNotNull(actualOutput);
+    }
+
+    @Test
     void handleManyStatements() {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < 10_000; i++) {
