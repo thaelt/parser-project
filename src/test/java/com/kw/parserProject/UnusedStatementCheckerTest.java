@@ -16,6 +16,7 @@ class UnusedStatementCheckerTest {
     // commonly defined statements/conditions:
     Assignment xIsFive = new Assignment("x", new ValueExpression("5"));
     Assignment xIsSix = new Assignment("x", new ValueExpression("6"));
+    Assignment yIsTwo = new Assignment("y", new ValueExpression("2"));
     Assignment yIsXPlusTwo = new Assignment("y", new OperatorExpression(new VariableExpression("x"), PLUS, new ValueExpression("2")));
     Assignment zIsXPlusThree = new Assignment("z", new OperatorExpression(new VariableExpression("x"), PLUS, new ValueExpression("3")));
     Expression xLessThanFive = new OperatorExpression(new VariableExpression("x"), LESS_THAN, new ValueExpression("5"));
@@ -122,14 +123,15 @@ class UnusedStatementCheckerTest {
     @Test
     void shouldMarkUnusedAssignmentFromWhileLoop() {
         // given
-        Statement whileStatement = new WhileStatement(zLessThanFive, List.of(xIsFive));
+        Statement whileStatement = new WhileStatement(zLessThanFive, List.of(yIsTwo, zIsXPlusThree, xIsFive));
 
         // when
         List<Statement> results = unusedStatementChecker.getUnusedStatements(new Program(List.of(whileStatement)));
 
         // then
         assertEquals(1, results.size());
-        assertEquals(xIsFive, results.getFirst());
+        assertEquals(yIsTwo, results.getFirst());
+        // x = 5 from loop is used in subsequent loop iterations, so can't be truly marked as unused?
     }
 
     @Test

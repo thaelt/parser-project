@@ -13,7 +13,7 @@ public class UnusedStatementChecker {
         Map<String, List<Statement>> recentAssignments = new HashMap<>();
 
         for (Statement parsedAssignment : program.statements()) {
-            updateUnusedStatements(unusedOverwrittenAssignmentsFromStatements, recentAssignments, parsedAssignment);
+            updateUnusedStatements(unusedOverwrittenAssignmentsFromStatements, recentAssignments, parsedAssignment, false);
         }
 
         return Stream.concat(
@@ -22,23 +22,22 @@ public class UnusedStatementChecker {
         ).sorted(Comparator.comparing(HasLineNumber::getLineNumber)).toList();
     }
 
-    private void updateUnusedStatements(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Statement statement) {
-        // let's start pre-traversal first
-        // if variable not in recent assignments, nothing to do, if it's there - let's clear the flag
+    private void updateUnusedStatements(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Statement statement, boolean readOnly) {
         switch (statement) {
-            case IfStatement ifStatement -> handleIfs(unusedStatements, recentAssignments, ifStatement);
+            case IfStatement ifStatement -> handleIfs(unusedStatements, recentAssignments, ifStatement, readOnly);
             case WhileStatement whileStatement ->
-                    handleWhileStatement(unusedStatements, recentAssignments, whileStatement);
+                    handleWhileStatement(unusedStatements, recentAssignments, whileStatement, readOnly);
             case Assignment assignmentStatement ->
-                    handleAssignment(unusedStatements, recentAssignments, assignmentStatement);
+                    handleAssignment(unusedStatements, recentAssignments, assignmentStatement, readOnly);
             case null -> throw new IllegalArgumentException("Null statement given for analysis");
             default -> throw new IllegalArgumentException("Undefined statement type: " + statement);
         }
     }
 
-    private void handleAssignment(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Assignment statement) {
+    private void handleAssignment(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, Assignment statement, boolean readOnly) {
         // remove read variables
         statement.expression().readVariables().forEach(recentAssignments::remove);
+        if (readOnly) return;
 
         String writeVariable = statement.writeVariable();
         List<Statement> recentlyDefinedStatementsForVariable = recentAssignments.computeIfAbsent(writeVariable, _ -> new ArrayList<>());
@@ -51,18 +50,21 @@ public class UnusedStatementChecker {
         recentlyDefinedStatementsForVariable.add(statement);
     }
 
-    private void handleWhileStatement(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, WhileStatement statement) {
+    private void handleWhileStatement(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, WhileStatement statement, boolean readOnly) {
         // condition - called when entering the loop
         statement.condition().readVariables().forEach(recentAssignments::remove);
 
-        // iterate through statements inside, once is enough
-        statement.statements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentAssignments, subStatement));
+        // iterate through statements inside twice
+        // once with "read-write" mode to record new assignments and mark any reassignments,
+        statement.statements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentAssignments, subStatement, readOnly));
+        // another with "read" only mode to just clear recentAssignments from variables defined inside the loop and used in subsequent iterations
+        statement.statements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentAssignments, subStatement, true));
 
         // condition - called when evaluating before leaving the loop
         statement.condition().readVariables().forEach(recentAssignments::remove);
     }
 
-    private void handleIfs(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, IfStatement statement) {
+    private void handleIfs(List<Statement> unusedStatements, Map<String, List<Statement>> recentAssignments, IfStatement statement, boolean readOnly) {
         // condition - called when entering the statement
         statement.condition().readVariables().forEach(recentAssignments::remove);
 
@@ -70,8 +72,8 @@ public class UnusedStatementChecker {
         HashMap<String, List<Statement>> recentStateForSecondExecutionBranch = deepCopy(recentAssignments);
 
         // execute each if execution path separately, gather the most recent state for all variables
-        statement.ifClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForFirstExecutionBranch, subStatement));
-        statement.elseClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForSecondExecutionBranch, subStatement));
+        statement.ifClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForFirstExecutionBranch, subStatement, readOnly));
+        statement.elseClauseStatements().forEach(subStatement -> updateUnusedStatements(unusedStatements, recentStateForSecondExecutionBranch, subStatement, readOnly));
 
         // merge the output of both, storing them without overriding each other
         BiConsumer<String, List<Statement>> collectUnusedVariables = (variable, values) -> recentAssignments.computeIfAbsent(variable, _ -> new ArrayList<>()).addAll(values);

@@ -49,7 +49,7 @@ public class AcceptanceTest {
                           b = b + 1
                           x = 9
                           y = 10
-                        end""", "[y = 4, z = x, x = 9, y = 10]"),
+                        end""", "[y = 4, z = x, y = 10]"),
                 Arguments.of("""
                         a = 1
                         b = 2
@@ -103,13 +103,14 @@ public class AcceptanceTest {
                         else
                            while c < 10
                               c = c * 2 * ( d + a ) + 10
+                              z = 4
                               d = 2
                            end
                            d = 5
                         end
                         b = c + a
                         e = 2 + d + b
-                        """, "[d = 2, d = 2, e = 2 + d + b]"), // this one reports 'd=2' from different lines
+                        """, "[d = 2, z = 4, e = 2 + d + b]"), // this one reports 'd=2' from 3rd line
                 Arguments.of("""
                         c = 5 + 2
                         a = 4 < 3
