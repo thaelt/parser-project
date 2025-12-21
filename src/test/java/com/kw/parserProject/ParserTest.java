@@ -23,7 +23,8 @@ class ParserTest {
     @Test
     void shouldRecognizeAssignment() {
         // when
-        List<Statement> statements = parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new ConstantToken("25")))
+        List<Statement> statements = parser.parse(List.of(
+                new VariableToken("x"), new AssignmentToken(), new ConstantToken("25")))
                 .statements();
 
         // then
@@ -131,16 +132,12 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        // y - rightExpression
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MINUS);
         assertVariableExpression(topTierExpression.leftExpression(), "y");
 
-        // rightExpression -> x * 2
         OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), MULTIPLY);
         assertVariableExpression(rightExpression.leftExpression(), "x");
         assertValueExpression(rightExpression.rightExpression(), 2);
-
-        assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
 
         assertIterableEquals(List.of("x", "y"), actualStatement.expression().readVariables());
     }
@@ -162,11 +159,9 @@ class ParserTest {
         Assignment actualStatement = (Assignment) statements.getFirst();
         assertEquals("x", actualStatement.writeVariable());
 
-        // leftExpression - 2
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MINUS);
         assertVariableExpression(topTierExpression.rightExpression(), "y");
 
-        // leftExpression -> x * 2
         OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
         assertVariableExpression(leftExpression.leftExpression(), "x");
         assertValueExpression(leftExpression.rightExpression(), 2);
@@ -192,13 +187,10 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), MULTIPLY);
-        // x * rightExpression
         assertVariableExpression(topTierExpression.leftExpression(), "x");
         BracketExpression bracketExpression = assertBracketExpression(topTierExpression.rightExpression());
 
-        // rightExpression -> expressionInBracket -> ( 2 - y )
         OperatorExpression expressionInBrackets = assertOperator(bracketExpression.expressionInBrackets(), MINUS);
-        // 2 - y
         assertValueExpression(expressionInBrackets.leftExpression(), 2);
         assertVariableExpression(expressionInBrackets.rightExpression(), "y");
 
@@ -223,15 +215,11 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), PLUS);
-        // leftExpression * rightExpression
-
-        // leftExpression -> 2 * x
         OperatorExpression leftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
 
         assertValueExpression(leftExpression.leftExpression(), 2);
         assertVariableExpression(leftExpression.rightExpression(), "x");
 
-        // rightExpression -> y / 5
         OperatorExpression rightExpression = assertOperator(topTierExpression.rightExpression(), DIVIDE);
 
         assertVariableExpression(rightExpression.leftExpression(), "y");
@@ -258,12 +246,9 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), DIVIDE);
-        // leftExpression / a
         Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
-        // leftExpression -> x * y * z
-        // x -> left, y * z -> right, due to rotation
         OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
         assertVariableExpression(secondLevelLeftExpression.rightExpression(), "z");
         OperatorExpression thirdTierExpression = assertOperator(secondLevelLeftExpression.leftExpression(), MULTIPLY);
@@ -356,12 +341,10 @@ class ParserTest {
         assertEquals("x", actualStatement.writeVariable());
 
         OperatorExpression topTierExpression = assertOperator(actualStatement.expression(), DIVIDE);
-        // leftExpression / a
 
         Expression rightExpression = topTierExpression.rightExpression();
         assertVariableExpression(rightExpression, "a");
 
-        // x * ( y + z )
         OperatorExpression secondLevelLeftExpression = assertOperator(topTierExpression.leftExpression(), MULTIPLY);
 
         assertVariableExpression(secondLevelLeftExpression.leftExpression(), "x");
@@ -409,13 +392,9 @@ class ParserTest {
 
         IfStatement actualStatement = (IfStatement) statements.getFirst();
 
-        // if-clause - one assignment
         assertEquals(1, actualStatement.ifClauseStatements().size());
-
-        // else clause - empty
         assertEquals(0, actualStatement.elseClauseStatements().size());
 
-        // read variables from condition
         assertEquals(1, actualStatement.condition().readVariables().size());
         assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
@@ -437,13 +416,16 @@ class ParserTest {
 
         IfStatement actualStatement = (IfStatement) statements.getFirst();
 
-        // if-clause - one assignment
         assertEquals(1, actualStatement.ifClauseStatements().size());
-
-        // else clause - one assignment
         assertEquals(1, actualStatement.elseClauseStatements().size());
 
-        // read variables from condition
+        assertEquals("x", ((Assignment) actualStatement.ifClauseStatements().getFirst()).writeVariable());
+        assertEquals("y", ((Assignment) actualStatement.ifClauseStatements().getFirst())
+                .expression().readVariables().getFirst());
+        assertEquals("y", ((Assignment) actualStatement.elseClauseStatements().getFirst()).writeVariable());
+        assertEquals("x", ((Assignment) actualStatement.elseClauseStatements().getFirst())
+                .expression().readVariables().getFirst());
+
         assertEquals(1, actualStatement.condition().readVariables().size());
         assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
@@ -465,7 +447,6 @@ class ParserTest {
 
         assertEquals(1, actualStatement.statements().size());
 
-        // read variables from condition
         assertEquals(1, actualStatement.condition().readVariables().size());
         assertEquals("a", actualStatement.condition().readVariables().getFirst());
     }
@@ -512,7 +493,8 @@ class ParserTest {
     void shouldHandleEndingStatementListRandomly() {
         // fails due to not consuming all tokens; any non-statement can be used
         // when
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("end"))));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parser.parse(List.of(new VariableToken("x"), new AssignmentToken(), new VariableToken("y"), new KeywordToken("end"))));
+        assertEquals("Did not manage to consume all tokens", exception.getMessage());
     }
 
     private static OperatorExpression assertOperator(Expression operatorExpression, Operator expected) {

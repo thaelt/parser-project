@@ -45,12 +45,7 @@ public class Lexer {
             return readNumeric(input, startingPos, tokens);
         }
         if (character >= 'a' && character <= 'z') {
-            // check for reserved keywords
-            int readKeywordResults = readReservedKeyword(input, startingPos, tokens);
-            if (readKeywordResults != -1) return readKeywordResults;
-            String variableName = readIdentifier(input, startingPos);
-            tokens.add(new VariableToken(variableName));
-            return startingPos + 1;
+            return readCharOrKeyword(input, startingPos, tokens);
         }
         Operator resolvedOperator = Operator.resolve(character);
         if (resolvedOperator != null) {
@@ -70,6 +65,15 @@ public class Lexer {
             return startingPos + 1;
         }
         throw new IllegalArgumentException("Cannot recognize token at position: " + startingPos);
+    }
+
+    private int readCharOrKeyword(char[] input, int startingPos, List<Token> tokens) {
+        // check for reserved keywords
+        int readKeywordResults = readReservedKeyword(input, startingPos, tokens);
+        if (readKeywordResults != -1) return readKeywordResults;
+        String variableName = readIdentifier(input, startingPos);
+        tokens.add(new VariableToken(variableName));
+        return startingPos + 1;
     }
 
     private int readNumeric(char[] input, int startingPos, List<Token> tokens) {

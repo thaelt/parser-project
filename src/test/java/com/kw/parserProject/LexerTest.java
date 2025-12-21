@@ -122,13 +122,15 @@ class LexerTest {
     @ValueSource(strings = {"whil", "abc", "fi"})
     void shouldLimitVariablesToOneCharacter(String illegalVariable) {
         // expect
-        assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(illegalVariable));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(illegalVariable));
+        assertTrue(exception.getMessage().startsWith("Identifiers are expected to be one-characters only, encountered identifier starting with: "));
     }
 
     @Test
     void shouldFailOnUnknownCharacter() {
         // expect
-        assertThrows(IllegalArgumentException.class, () -> lexer.parseLine("💩"));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> lexer.parseLine(" 💩"));
+        assertEquals("Cannot recognize token at position: 1", exception.getMessage());
     }
 
     public static Stream<Arguments> basicTokenTestCases() {
